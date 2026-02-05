@@ -711,10 +711,7 @@ function requireVendorPin() {
   }
 
   if (!storedPin) {
-    pinModal.classList.remove("hidden");
-    if (pinMessage) {
-      pinMessage.textContent = "Belum ada PIN. Tambahkan ?pin=1234 sekali di URL vendor untuk set PIN.";
-    }
+    return;
   }
 
   pinModal.classList.remove("hidden");
