@@ -30,6 +30,50 @@
         <a class="ghost" href="client.html" style="text-decoration:none; padding:12px 18px; border-radius:999px; border:1px solid var(--border);">Client</a>
       </div>
     </section>
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Atur PIN Vendor</h2>
+      </div>
+      <div class="field">
+        <label for="landingPinInput">PIN Baru</label>
+        <input id="landingPinInput" type="password" placeholder="Contoh: 1234" />
+      </div>
+      <div class="actions">
+        <button id="landingSetPin" class="primary">Simpan PIN</button>
+        <button id="landingClearPin" class="ghost">Hapus PIN</button>
+      </div>
+      <div id="landingPinStatus" class="muted"></div>
+    </section>
   </main>
 </body>
+<script>
+  const pinKey = "photoPicker.vendorPin";
+  const pinInput = document.getElementById("landingPinInput");
+  const setBtn = document.getElementById("landingSetPin");
+  const clearBtn = document.getElementById("landingClearPin");
+  const statusEl = document.getElementById("landingPinStatus");
+
+  function updateStatus() {
+    const current = localStorage.getItem(pinKey);
+    statusEl.textContent = current ? "PIN sudah tersimpan." : "Belum ada PIN.";
+  }
+
+  setBtn.addEventListener("click", () => {
+    const value = pinInput.value.trim();
+    if (!value) {
+      statusEl.textContent = "Masukkan PIN terlebih dahulu.";
+      return;
+    }
+    localStorage.setItem(pinKey, value);
+    pinInput.value = "";
+    updateStatus();
+  });
+
+  clearBtn.addEventListener("click", () => {
+    localStorage.removeItem(pinKey);
+    updateStatus();
+  });
+
+  updateStatus();
+</script>
 </html>
