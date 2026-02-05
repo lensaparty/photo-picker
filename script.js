@@ -48,6 +48,9 @@ const pinInput = document.getElementById("pinInput");
 const pinSubmit = document.getElementById("pinSubmit");
 const pinHelp = document.getElementById("pinHelp");
 const pinMessage = document.getElementById("pinMessage");
+const pinSetInput = document.getElementById("pinSetInput");
+const pinSetBtn = document.getElementById("pinSetBtn");
+const pinResetBtn = document.getElementById("pinResetBtn");
 
 const MODE = document.body.dataset.mode || "vendor";
 document.body.classList.add(`mode-${MODE}`);
@@ -748,5 +751,29 @@ if (pinHelp) {
       pinMessage.textContent =
         "Cara set PIN: buka vendor.html?pin=1234 lalu refresh. PIN akan tersimpan di browser.";
     }
+  });
+}
+
+if (pinSetBtn && pinSetInput) {
+  pinSetBtn.addEventListener("click", () => {
+    const value = pinSetInput.value.trim();
+    if (!value) {
+      alert("Masukkan PIN terlebih dahulu.");
+      return;
+    }
+    localStorage.setItem(getPinKey(), value);
+    pinSetInput.value = "";
+    alert("PIN vendor berhasil disimpan.");
+  });
+}
+
+if (pinResetBtn) {
+  pinResetBtn.addEventListener("click", () => {
+    const ok = confirm(
+      "Reset PIN? Jika lupa, kamu bisa reset dan set ulang PIN."
+    );
+    if (!ok) return;
+    localStorage.removeItem(getPinKey());
+    alert("PIN vendor berhasil di-reset. Set PIN baru jika perlu.");
   });
 }
