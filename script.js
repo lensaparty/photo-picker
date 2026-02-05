@@ -171,28 +171,29 @@ function getLimitLockKey(folderId) {
 
 function updateLimitInfo() {
   if (!limitInfo) return;
+  const editCount = state.photos.filter((photo) => photo.needsEdit).length;
   if (!state.limit || state.limit <= 0) {
     limitInfo.textContent = isClientMode
-      ? "Batas pilihan belum diatur vendor."
-      : "Belum ada batas.";
+      ? "Batas edit belum diatur vendor."
+      : "Belum ada batas edit.";
     if (limitBadge) limitBadge.textContent = "Limit: -";
     if (limitWarning) limitWarning.textContent = "";
     return;
   }
-  const remaining = Math.max(0, state.limit - state.selected.size);
+  const remaining = Math.max(0, state.limit - editCount);
   const lockLabel = state.limitLocked ? " (terkunci)" : "";
-  limitInfo.textContent = `Batas: ${state.limit} foto${lockLabel}. Sisa: ${remaining}.`;
+  limitInfo.textContent = `Batas edit: ${state.limit} foto${lockLabel}. Sisa: ${remaining}.`;
   if (limitBadge) {
-    limitBadge.textContent = `Limit: ${state.limit}`;
+    limitBadge.textContent = `Limit edit: ${state.limit}`;
     limitBadge.classList.toggle("warn", remaining === 0);
   }
   if (limitWarning) {
-    if (state.selected.size < state.limit) {
-      limitWarning.textContent = `Kurang ${state.limit - state.selected.size} foto dari batas.`;
-    } else if (state.selected.size === state.limit) {
-      limitWarning.textContent = "Limit tercapai.";
+    if (editCount < state.limit) {
+      limitWarning.textContent = `Edit kurang ${state.limit - editCount} foto dari batas.`;
+    } else if (editCount === state.limit) {
+      limitWarning.textContent = "Limit edit tercapai.";
     } else {
-      limitWarning.textContent = "Melebihi limit (cek pilihan).";
+      limitWarning.textContent = "Melebihi limit edit (cek pilihan).";
     }
   }
 }
@@ -303,6 +304,16 @@ function applyEditsToSelected() {
   const picked = pillButtons.find((btn) => btn.classList.contains("active"))?.dataset.picked;
   const wantsEdit = editPickToggle ? editPickToggle.checked : false;
   const wantsAlbum = albumPickToggle ? albumPickToggle.checked : false;
+  if (wantsEdit && state.limit && state.limit > 0) {
+    const currentEdit = state.photos.filter((photo) => photo.needsEdit).length;
+    const willAdd = state.photos.filter(
+      (photo) => state.selected.has(photo.id) && !photo.needsEdit
+    ).length;
+    if (currentEdit + willAdd > state.limit) {
+      alert("Batas edit sudah tercapai. Kurangi pilihan edit.");
+      return;
+    }
+  }
   if (wantsAlbum) {
     const currentAlbum = state.photos.filter((photo) => photo.forAlbum).length;
     const willAdd = state.photos.filter(
@@ -613,11 +624,16 @@ exportBtn.addEventListener("click", () => {
     exportOutput.value = "Belum ada foto terpilih.";
   } else {
     const albumCount = state.photos.filter((photo) => photo.forAlbum).length;
+    const editCount = state.photos.filter((photo) => photo.needsEdit).length;
     const albumWarning =
       albumCount < 34
         ? `\n\n[PERINGATAN] Album kurang ${34 - albumCount} foto dari target.`
         : albumCount > 37
         ? `\n\n[PERINGATAN] Album melebihi ${albumCount - 37} foto.`
+        : "";
+    const editWarning =
+      state.limit && state.limit > 0
+        ? `\n\n[INFO] Edit: ${editCount}/${state.limit} foto.`
         : "";
     const lines = selected.map((photo, index) => {
       const label = isClientMode ? "Client" : PICKED_LABEL[photo.pickedBy];
@@ -634,7 +650,7 @@ exportBtn.addEventListener("click", () => {
       const extraLine = extra ? `Tag: ${extra}` : "Tag: -";
       return `${index + 1}. ${photo.name}\n${statusLine}\n${extraLine}\n${caption}\n${notes}\n`;
     });
-    exportOutput.value = lines.join("\n") + albumWarning;
+    exportOutput.value = lines.join("\n") + albumWarning + editWarning;
   }
   exportModal.classList.remove("hidden");
 });
