@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Photo Picker - Client</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-mode="client" class="mode-client">
+  <header class="topbar">
+    <div>
+      <h1>Photo Picker</h1>
+      <p class="subtitle vendor-only">Mode Vendor/FG: siapkan foto, kunci, dan kirim ke klien.</p>
+      <p class="subtitle client-only">Mode Client: pilih foto dan kirim hasil ke vendor.</p>
+    </div>
+    <div class="top-actions">
+      <button id="exportBtn" class="ghost">Export Terpilih</button>
+      <button id="clearBtn" class="danger">Reset</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="panel">
+      <div class="panel-header">
+        <h2>Input & Filter</h2>
+        <span id="countPill">0 dipilih</span>
+      </div>
+
+      <div class="input-row">
+        <div class="field grow">
+          <label for="folderInput">Link Folder Google Drive (publik)</label>
+          <input id="folderInput" placeholder="https://drive.google.com/drive/folders/..." />
+        </div>
+        <button id="loadBtn" class="primary">Ambil Foto</button>
+      </div>
+      <div class="input-row client-only">
+        <div id="limitInfo" class="muted">Belum ada batas.</div>
+      </div>
+
+      <div class="input-row vendor-only">
+        <label class="file-btn">
+          Tambah Foto Lokal
+          <input id="fileInput" type="file" accept="image/*,.cr2,.cr3,.nef,.arw,.raf,.dng,.orf,.rw2" multiple>
+        </label>
+        <button id="selectAllBtn" class="ghost">Select Page</button>
+      </div>
+      <div class="input-row client-only">
+        <button id="selectAllBtn" class="ghost">Select Page</button>
+      </div>
+
+      <div class="filter-row">
+        <div class="field vendor-only">
+          <label for="statusFilter">Filter:</label>
+          <select id="statusFilter">
+            <option value="all">Semua</option>
+            <option value="fg">Dipilih FG</option>
+            <option value="vendor">Dipilih Vendor</option>
+            <option value="unassigned">Belum Ditandai</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="searchInput">Cari:</label>
+          <input id="searchInput" placeholder="Nama file..." />
+        </div>
+      </div>
+      <div class="filter-row">
+        <div class="field">
+          <label>Ekstensi:</label>
+          <div class="check-group">
+            <label class="checkbox">
+              <input id="filterJpg" type="checkbox" checked>
+              JPG/JPEG
+            </label>
+            <label class="checkbox">
+              <input id="filterRaw" type="checkbox" checked>
+              RAW
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div id="grid" class="grid"></div>
+      <div id="pagination" class="pagination hidden">
+        <button id="prevPageBtn" class="ghost">Prev</button>
+        <span id="pageInfo" class="muted">Halaman 1</span>
+        <button id="nextPageBtn" class="ghost">Next</button>
+        <div class="field">
+          <label for="pageSizeSelect">Per halaman</label>
+          <select id="pageSizeSelect">
+            <option value="12">12</option>
+            <option value="24" selected>24</option>
+            <option value="36">36</option>
+            <option value="48">48</option>
+          </select>
+        </div>
+      </div>
+      <div id="emptyState" class="empty">
+        Belum ada foto. Tambahkan file gambar untuk mulai memilih.
+      </div>
+    </section>
+
+    <aside class="panel preview">
+      <div class="panel-header">
+        <h2>Preview & Edit</h2>
+        <span id="activeLabel" class="muted">Belum ada foto aktif</span>
+      </div>
+
+      <div id="previewWrap" class="preview-wrap">
+        <div class="preview-placeholder">Klik foto untuk melihat preview</div>
+      </div>
+
+      <form id="editForm" class="edit-form">
+        <div class="field">
+          <label for="captionInput">Caption</label>
+          <input id="captionInput" placeholder="Mis. Foto utama untuk cover" />
+        </div>
+        <div class="field">
+          <label for="notesInput">Catatan</label>
+          <textarea id="notesInput" rows="4" placeholder="Instruksi edit atau highlight"></textarea>
+        </div>
+        <div class="field vendor-only">
+          <label>Dipilih oleh</label>
+          <div class="pill-group">
+            <button type="button" data-picked="fg" class="pill">FG</button>
+            <button type="button" data-picked="vendor" class="pill">Vendor</button>
+            <button type="button" data-picked="unassigned" class="pill">Belum</button>
+          </div>
+        </div>
+        <label class="checkbox vendor-only">
+          <input id="editedInput" type="checkbox">
+          Sudah diedit
+        </label>
+        <div class="actions">
+          <button id="applyBtn" type="button" class="primary">Terapkan ke Terpilih</button>
+          <button id="lockBtn" type="button" class="ghost vendor-only">Kunci Terpilih</button>
+          <button id="unlockBtn" type="button" class="ghost vendor-only">Buka Kunci</button>
+          <button id="clearActiveBtn" type="button" class="ghost">Hapus Aktif</button>
+        </div>
+      </form>
+    </aside>
+  </main>
+
+  <div id="exportModal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Copy untuk WA</h3>
+        <button id="closeExport" class="ghost">Tutup</button>
+      </div>
+      <textarea id="exportOutput" readonly rows="10"></textarea>
+      <div class="actions">
+        <button id="copyExport" class="primary">Copy</button>
+        <button id="downloadExport" class="ghost">Download TXT</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="welcomeModal" class="modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Selamat Datang</h3>
+        <button id="welcomeClose" class="ghost">Tutup</button>
+      </div>
+      <div class="muted">
+        Silakan pilih foto sesuai paket. Klik foto untuk memilih, lalu tekan
+        <strong>Export Terpilih</strong> untuk menyalin hasil dan kirim ke vendor/FG via WA.
+      </div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
