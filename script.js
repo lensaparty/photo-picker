@@ -43,6 +43,11 @@ const limitBadge = document.getElementById("limitBadge");
 const limitWarning = document.getElementById("limitWarning");
 const welcomeModal = document.getElementById("welcomeModal");
 const welcomeClose = document.getElementById("welcomeClose");
+const pinModal = document.getElementById("pinModal");
+const pinInput = document.getElementById("pinInput");
+const pinSubmit = document.getElementById("pinSubmit");
+const pinHelp = document.getElementById("pinHelp");
+const pinMessage = document.getElementById("pinMessage");
 
 const MODE = document.body.dataset.mode || "vendor";
 document.body.classList.add(`mode-${MODE}`);
@@ -689,3 +694,43 @@ if (welcomeModal && welcomeClose) {
     welcomeModal.classList.add("hidden");
   });
 }
+
+function getPinKey() {
+  return "photoPicker.vendorPin";
+}
+
+function requireVendorPin() {
+  if (isClientMode || !pinModal) return;
+  const params = new URLSearchParams(window.location.search);
+  const urlPin = params.get("pin");
+  const storedPin = localStorage.getItem(getPinKey());
+
+  if (urlPin) {
+    localStorage.setItem(getPinKey(), urlPin);
+    return;
+  }
+
+  if (!storedPin) {
+    pinModal.classList.remove("hidden");
+    if (pinMessage) {
+      pinMessage.textContent = "Belum ada PIN. Tambahkan ?pin=1234 sekali di URL vendor untuk set PIN.";
+    }
+    return;
+  }
+
+  pinModal.classList.remove("hidden");
+  pinMessage.textContent = "";
+  pinSubmit.addEventListener("click", () => {
+    if (pinInput.value === storedPin) {
+      pinModal.classList.add("hidden");
+      pinInput.value = "";
+      return;
+    }
+    pinMessage.textContent = "PIN salah. Coba lagi.";
+  });
+  pinHelp.addEventListener("click", () => {
+    pinMessage.textContent = "Cara set PIN: buka vendor.html?pin=1234 lalu refresh. PIN akan tersimpan di browser.";
+  });
+}
+
+requireVendorPin();
