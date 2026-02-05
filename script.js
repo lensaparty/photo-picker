@@ -439,14 +439,11 @@ async function loadFromDriveFunction(folderId) {
 }
 
 async function loadDriveData(folderId) {
-  if (window.location.hostname === "localhost") {
+  const host = window.location.hostname;
+  if (host === "localhost" || host === "127.0.0.1") {
     return loadFromDriveJSONP(folderId);
   }
-  try {
-    return await loadFromDriveFunction(folderId);
-  } catch (error) {
-    return loadFromDriveJSONP(folderId);
-  }
+  return loadFromDriveFunction(folderId);
 }
 
 loadBtn.addEventListener("click", async () => {
@@ -474,7 +471,7 @@ loadBtn.addEventListener("click", async () => {
     setActive(state.activeId);
   } catch (error) {
     alert(
-      "Tidak bisa mengambil isi folder. Pastikan link publik, Apps Script sudah di-deploy sebagai Web App (Anyone), dan sudah di-autorize.\n\nDetail: " +
+      "Tidak bisa mengambil isi folder. Pastikan link publik, Apps Script sudah di-deploy sebagai Web App (Anyone), dan Netlify Function aktif.\n\nDetail: " +
         error.message
     );
   } finally {
