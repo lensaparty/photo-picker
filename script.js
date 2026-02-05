@@ -409,10 +409,6 @@ function renderGrid() {
       if (state.selected.has(photo.id)) {
         state.selected.delete(photo.id);
       } else {
-        if (state.limit && state.selected.size >= state.limit) {
-          alert(`Batas pilihan ${state.limit} foto sudah tercapai.`);
-          return;
-        }
         state.selected.add(photo.id);
       }
       setActive(photo.id);
@@ -564,12 +560,7 @@ selectAllBtn.addEventListener("click", () => {
   if (allSelected) {
     pageItems.forEach((photo) => state.selected.delete(photo.id));
   } else {
-    const remaining = state.limit ? Math.max(0, state.limit - state.selected.size) : pageItems.length;
-    const toSelect = state.limit ? pageItems.slice(0, remaining) : pageItems;
-    toSelect.forEach((photo) => state.selected.add(photo.id));
-    if (state.limit && remaining < pageItems.length) {
-      alert(`Batas pilihan ${state.limit} foto sudah tercapai.`);
-    }
+    pageItems.forEach((photo) => state.selected.add(photo.id));
   }
   updateCount();
   renderGrid();
