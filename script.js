@@ -41,6 +41,9 @@ const importBtn = document.getElementById("importBtn");
 const copyClientLinkBtn = document.getElementById("copyClientLinkBtn");
 const limitBadge = document.getElementById("limitBadge");
 const limitWarning = document.getElementById("limitWarning");
+const albumInfo = document.getElementById("albumInfo");
+const editPickToggle = document.getElementById("editPickToggle");
+const albumPickToggle = document.getElementById("albumPickToggle");
 const welcomeModal = document.getElementById("welcomeModal");
 const welcomeClose = document.getElementById("welcomeClose");
 const pinModal = document.getElementById("pinModal");
@@ -105,6 +108,8 @@ function createPhoto(file) {
     ext,
     isJpg,
     isRaw,
+    needsEdit: false,
+    forAlbum: false,
   };
 }
 
@@ -127,6 +132,8 @@ function createPhotoFromDrive(file) {
     ext,
     isJpg,
     isRaw,
+    needsEdit: false,
+    forAlbum: false,
   };
 }
 
@@ -147,6 +154,7 @@ function extractFolderId(link) {
 function updateCount() {
   countPill.textContent = `${state.selected.size} dipilih`;
   updateLimitInfo();
+  updateAlbumInfo();
 }
 
 function getActivePhoto() {
@@ -187,6 +195,18 @@ function updateLimitInfo() {
       limitWarning.textContent = "Melebihi limit (cek pilihan).";
     }
   }
+}
+
+function updateAlbumInfo() {
+  if (!albumInfo) return;
+  const albumCount = state.photos.filter((photo) => photo.forAlbum).length;
+  const status =
+    albumCount < 34
+      ? `Kurang ${34 - albumCount} foto menuju target.`
+      : albumCount > 37
+      ? `Melebihi ${albumCount - 37} foto.`
+      : "Target album terpenuhi.";
+  albumInfo.textContent = `Album: ${albumCount} foto (target 34-37). ${status}`;
 }
 
 function loadLimitForFolder(folderId) {
@@ -265,6 +285,8 @@ function setActive(id) {
   pillButtons.forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.picked === photo.pickedBy);
   });
+  if (editPickToggle) editPickToggle.checked = photo.needsEdit;
+  if (albumPickToggle) albumPickToggle.checked = photo.forAlbum;
 
   const isLocked = photo.locked;
   captionInput.disabled = isLocked;
@@ -279,6 +301,18 @@ function setActive(id) {
 function applyEditsToSelected() {
   if (state.selected.size === 0) return;
   const picked = pillButtons.find((btn) => btn.classList.contains("active"))?.dataset.picked;
+  const wantsEdit = editPickToggle ? editPickToggle.checked : false;
+  const wantsAlbum = albumPickToggle ? albumPickToggle.checked : false;
+  if (wantsAlbum) {
+    const currentAlbum = state.photos.filter((photo) => photo.forAlbum).length;
+    const willAdd = state.photos.filter(
+      (photo) => state.selected.has(photo.id) && !photo.forAlbum
+    ).length;
+    if (currentAlbum + willAdd > 37) {
+      alert("Batas album maksimal 37 foto. Kurangi pilihan album.");
+      return;
+    }
+  }
   state.photos = state.photos.map((photo) => {
     if (!state.selected.has(photo.id) || photo.locked) return photo;
     return {
@@ -287,6 +321,8 @@ function applyEditsToSelected() {
       notes: notesInput.value,
       edited: editedInput.checked,
       pickedBy: picked || photo.pickedBy,
+      needsEdit: wantsEdit,
+      forAlbum: wantsAlbum,
     };
   });
   renderGrid();
@@ -352,6 +388,8 @@ function renderGrid() {
           ${photo.caption ? `<span class="badge">Caption</span>` : ""}
           ${photo.locked ? `<span class="badge">Locked</span>` : ""}
           ${photo.isRaw ? `<span class="badge">RAW</span>` : ""}
+          ${photo.needsEdit ? `<span class="badge">Edit</span>` : ""}
+          ${photo.forAlbum ? `<span class="badge">Album</span>` : ""}
         </div>
       </div>
     `;
@@ -574,6 +612,13 @@ exportBtn.addEventListener("click", () => {
   if (selected.length === 0) {
     exportOutput.value = "Belum ada foto terpilih.";
   } else {
+    const albumCount = state.photos.filter((photo) => photo.forAlbum).length;
+    const albumWarning =
+      albumCount < 34
+        ? `\n\n[PERINGATAN] Album kurang ${34 - albumCount} foto dari target.`
+        : albumCount > 37
+        ? `\n\n[PERINGATAN] Album melebihi ${albumCount - 37} foto.`
+        : "";
     const lines = selected.map((photo, index) => {
       const label = isClientMode ? "Client" : PICKED_LABEL[photo.pickedBy];
       const edited = photo.edited ? "Edited" : "Belum edit";
@@ -582,9 +627,14 @@ exportBtn.addEventListener("click", () => {
       const statusLine = isClientMode
         ? `Dipilih: ${label}`
         : `Status: ${label} | ${edited}`;
-      return `${index + 1}. ${photo.name}\n${statusLine}\n${caption}\n${notes}\n`;
+      const extra = [
+        photo.needsEdit ? "Untuk Edit" : null,
+        photo.forAlbum ? "Masuk Album" : null,
+      ].filter(Boolean).join(", ");
+      const extraLine = extra ? `Tag: ${extra}` : "Tag: -";
+      return `${index + 1}. ${photo.name}\n${statusLine}\n${extraLine}\n${caption}\n${notes}\n`;
     });
-    exportOutput.value = lines.join("\n");
+    exportOutput.value = lines.join("\n") + albumWarning;
   }
   exportModal.classList.remove("hidden");
 });
@@ -657,12 +707,26 @@ if (copyClientLinkBtn) {
 function applyClientSelection(text) {
   if (!text) return;
   const names = new Set();
+  const tagMap = new Map();
   text.split(/\r?\n/).forEach((line) => {
     const trimmed = line.trim();
     if (!trimmed) return;
     const numbered = trimmed.match(/^\d+\.\s+(.+)$/);
     if (numbered) {
-      names.add(numbered[1].trim());
+      const name = numbered[1].trim();
+      names.add(name);
+      tagMap.set(name, { needsEdit: false, forAlbum: false });
+      return;
+    }
+    if (trimmed.startsWith("Tag:")) {
+      const lastName = Array.from(names).slice(-1)[0];
+      if (lastName) {
+        const tags = trimmed.replace("Tag:", "").toLowerCase();
+        const current = tagMap.get(lastName) || { needsEdit: false, forAlbum: false };
+        current.needsEdit = tags.includes("edit");
+        current.forAlbum = tags.includes("album");
+        tagMap.set(lastName, current);
+      }
       return;
     }
     if (trimmed.includes(".") && !trimmed.includes("Status:")) {
@@ -675,6 +739,11 @@ function applyClientSelection(text) {
   state.photos.forEach((photo) => {
     if (names.has(photo.name)) {
       state.selected.add(photo.id);
+      const tags = tagMap.get(photo.name);
+      if (tags) {
+        photo.needsEdit = tags.needsEdit;
+        photo.forAlbum = tags.forAlbum;
+      }
     }
   });
   updateCount();

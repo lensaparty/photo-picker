@@ -45,6 +45,9 @@
         <button id="pinResetBtn" class="ghost" style="margin-top:22px;">Reset PIN</button>
       </div>
       <div class="input-row vendor-only">
+        <div id="albumInfo" class="muted">Album: 0 foto (target 34-37).</div>
+      </div>
+      <div class="input-row vendor-only">
         <div class="field grow">
           <label for="limitInput">Batas pilihan (jumlah foto)</label>
           <input id="limitInput" type="number" min="0" placeholder="Kosongkan untuk tanpa batas" />
@@ -166,6 +169,19 @@
           <button id="lockBtn" type="button" class="ghost vendor-only">Kunci Terpilih</button>
           <button id="unlockBtn" type="button" class="ghost vendor-only">Buka Kunci</button>
           <button id="clearActiveBtn" type="button" class="ghost">Hapus Aktif</button>
+        </div>
+        <div class="field vendor-only">
+          <label>Tambahan Pilihan (Client)</label>
+          <div class="check-group">
+            <label class="checkbox">
+              <input id="editPickToggle" type="checkbox" disabled>
+              Untuk Edit (dibaca dari client)
+            </label>
+            <label class="checkbox">
+              <input id="albumPickToggle" type="checkbox" disabled>
+              Masuk Album (dibaca dari client)
+            </label>
+          </div>
         </div>
       </form>
     </aside>
