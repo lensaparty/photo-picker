@@ -1,5 +1,5 @@
 const DRIVE_ENDPOINT =
-  "https://script.google.com/macros/s/AKfycbyGxjzwUcW-KxKm0M5pbR1kpkViqyzBWL76T4PRzppHX5ntF5BtpRyII8T3GZlK2ulplA/exec";
+  "https://script.google.com/macros/s/AKfycbyFbemDNLsOib5BGbIzE1b_a8-kQmCSjs-sbhQqzpkVfYJMnnAubmWTPPMJ08Apk89G3A/exec";
 
 exports.handler = async (event) => {
   const folderId = event.queryStringParameters?.folderId;
