@@ -715,22 +715,41 @@ function requireVendorPin() {
     if (pinMessage) {
       pinMessage.textContent = "Belum ada PIN. Tambahkan ?pin=1234 sekali di URL vendor untuk set PIN.";
     }
-    return;
   }
 
   pinModal.classList.remove("hidden");
-  pinMessage.textContent = "";
-  pinSubmit.addEventListener("click", () => {
-    if (pinInput.value === storedPin) {
-      pinModal.classList.add("hidden");
-      pinInput.value = "";
-      return;
-    }
-    pinMessage.textContent = "PIN salah. Coba lagi.";
-  });
-  pinHelp.addEventListener("click", () => {
-    pinMessage.textContent = "Cara set PIN: buka vendor.html?pin=1234 lalu refresh. PIN akan tersimpan di browser.";
-  });
+  if (pinMessage && storedPin) {
+    pinMessage.textContent = "";
+  }
 }
 
 requireVendorPin();
+
+if (pinSubmit) {
+  pinSubmit.addEventListener("click", () => {
+    const storedPin = localStorage.getItem(getPinKey());
+    if (!storedPin) {
+      if (pinMessage) {
+        pinMessage.textContent =
+          "Belum ada PIN. Tambahkan ?pin=1234 sekali di URL vendor untuk set PIN.";
+      }
+      return;
+    }
+    if (pinInput.value === storedPin) {
+      pinModal.classList.add("hidden");
+      pinInput.value = "";
+      if (pinMessage) pinMessage.textContent = "";
+      return;
+    }
+    if (pinMessage) pinMessage.textContent = "PIN salah. Coba lagi.";
+  });
+}
+
+if (pinHelp) {
+  pinHelp.addEventListener("click", () => {
+    if (pinMessage) {
+      pinMessage.textContent =
+        "Cara set PIN: buka vendor.html?pin=1234 lalu refresh. PIN akan tersimpan di browser.";
+    }
+  });
+}
