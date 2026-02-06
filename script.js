@@ -44,6 +44,8 @@ const limitWarning = document.getElementById("limitWarning");
 const albumInfo = document.getElementById("albumInfo");
 const editPickToggle = document.getElementById("editPickToggle");
 const albumPickToggle = document.getElementById("albumPickToggle");
+const editCounter = document.getElementById("editCounter");
+const albumCounter = document.getElementById("albumCounter");
 const welcomeModal = document.getElementById("welcomeModal");
 const welcomeClose = document.getElementById("welcomeClose");
 const pinModal = document.getElementById("pinModal");
@@ -157,6 +159,7 @@ function updateCount() {
   countPill.textContent = `${state.selected.size} dipilih`;
   updateLimitInfo();
   updateAlbumInfo();
+  updateCounters();
 }
 
 function getActivePhoto() {
@@ -268,6 +271,23 @@ function updateAlbumInfo() {
       ? `Melebihi ${albumCount - 37} foto.`
       : "Target album terpenuhi.";
   albumInfo.textContent = `Album: ${albumCount} foto (target 34-37). ${status}`;
+}
+
+function updateCounters() {
+  const editCount = state.photos.filter((photo) => photo.needsEdit).length;
+  const albumCount = state.photos.filter((photo) => photo.forAlbum).length;
+  if (editCounter) {
+    const limitLabel = state.limit && state.limit > 0 ? state.limit : 0;
+    editCounter.textContent = `Edit: ${editCount}/${limitLabel}`;
+    editCounter.classList.toggle(
+      "warn",
+      state.limit && state.limit > 0 && editCount > state.limit
+    );
+  }
+  if (albumCounter) {
+    albumCounter.textContent = `Album: ${albumCount}/34-37`;
+    albumCounter.classList.toggle("warn", albumCount > 37 || albumCount < 34);
+  }
 }
 
 function getEditCounts() {

@@ -130,6 +130,14 @@ button:hover {
   gap: 16px;
 }
 
+.counter-stack {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 #countPill {
   background: #fff;
   border: 1px solid var(--border);
