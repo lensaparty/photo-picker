@@ -159,6 +159,42 @@ button:hover {
   flex-wrap: wrap;
 }
 
+.section {
+  padding: 10px 0 6px;
+  border-top: 1px dashed var(--border);
+}
+
+.section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.action-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.action-row button,
+.action-row a {
+  min-width: 140px;
+  text-align: center;
+}
+
+.field.inline {
+  flex-direction: row;
+  align-items: center;
+}
+
+.field.inline label {
+  min-width: 160px;
+}
+
+.badge.small {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+}
 .grow {
   flex: 1;
 }

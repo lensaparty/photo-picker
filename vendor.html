@@ -28,8 +28,8 @@
         <h2>Input & Filter</h2>
         <div class="counter-stack">
           <span id="countPill">0 dipilih</span>
-          <span id="editCounter" class="badge">Edit: 0/0</span>
-          <span id="albumCounter" class="badge">Album: 0/34-37</span>
+          <span id="editCounter" class="badge small">Edit: 0/0</span>
+          <span id="albumCounter" class="badge small">Album: 0/34-37</span>
         </div>
       </div>
 
@@ -40,46 +40,46 @@
         </div>
         <button id="loadBtn" class="primary">Ambil Foto</button>
       </div>
-      <div class="input-row vendor-only">
+      <div class="input-row vendor-only action-row">
         <div class="field grow">
           <label for="pinSetInput">Set PIN Vendor</label>
           <input id="pinSetInput" type="password" placeholder="Contoh: 1234" />
         </div>
-        <button id="pinSetBtn" class="ghost" style="margin-top:22px;">Simpan PIN</button>
-        <button id="pinResetBtn" class="ghost" style="margin-top:22px;">Reset PIN</button>
+        <button id="pinSetBtn" class="ghost">Simpan PIN</button>
+        <button id="pinResetBtn" class="ghost">Reset PIN</button>
       </div>
       <div class="input-row vendor-only">
         <div id="albumInfo" class="muted">Album: 0 foto (target 34-37).</div>
       </div>
-      <div class="input-row vendor-only">
+      <div class="input-row vendor-only action-row">
         <label class="checkbox">
           <input id="showSelectedOnly" type="checkbox">
           Tampilkan hanya yang terpilih
         </label>
         <a class="ghost" href="sorter.html" style="text-decoration:none; padding:10px 16px; border-radius:999px; border:1px solid var(--border);">Buka Local Sorter</a>
       </div>
-      <div class="input-row vendor-only">
+      <div class="input-row vendor-only action-row">
         <div class="field grow">
           <label for="limitInput">Batas pilihan untuk Edit</label>
           <input id="limitInput" type="number" min="0" placeholder="Kosongkan untuk tanpa batas edit" />
         </div>
-        <label class="checkbox" style="margin-top:22px;">
+        <label class="checkbox">
           <input id="limitLock" type="checkbox">
           Kunci batas
         </label>
-        <div id="limitInfo" class="muted" style="margin-top:22px;">Belum ada batas.</div>
+        <div id="limitInfo" class="muted">Belum ada batas edit.</div>
       </div>
-      <div class="input-row vendor-only">
+      <div class="input-row vendor-only action-row">
         <button id="copyClientLinkBtn" class="ghost">Copy Link Client (Limit)</button>
-        <span id="limitBadge" class="badge">Limit: -</span>
+        <span id="limitBadge" class="badge small">Limit: -</span>
         <span id="limitWarning" class="muted"></span>
       </div>
-      <div class="input-row vendor-only">
+      <div class="input-row vendor-only action-row">
         <div class="field grow">
           <label for="importInput">Tempel hasil pilihan client</label>
           <textarea id="importInput" rows="3" placeholder="Paste hasil copy dari client (nama file)"></textarea>
         </div>
-        <button id="importBtn" class="ghost" style="margin-top:22px;">Terapkan</button>
+        <button id="importBtn" class="ghost">Terapkan</button>
       </div>
 
       <div class="input-row vendor-only">
