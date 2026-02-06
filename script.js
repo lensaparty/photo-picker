@@ -210,6 +210,22 @@ function updateAlbumInfo() {
   albumInfo.textContent = `Album: ${albumCount} foto (target 34-37). ${status}`;
 }
 
+function getEditCounts() {
+  const currentEdit = state.photos.filter((photo) => photo.needsEdit).length;
+  const willAdd = state.photos.filter(
+    (photo) => state.selected.has(photo.id) && !photo.needsEdit
+  ).length;
+  return { currentEdit, willAdd };
+}
+
+function getAlbumCounts() {
+  const currentAlbum = state.photos.filter((photo) => photo.forAlbum).length;
+  const willAdd = state.photos.filter(
+    (photo) => state.selected.has(photo.id) && !photo.forAlbum
+  ).length;
+  return { currentAlbum, willAdd };
+}
+
 function loadLimitForFolder(folderId) {
   if (!folderId) return;
   const urlParams = new URLSearchParams(window.location.search);
@@ -305,20 +321,14 @@ function applyEditsToSelected() {
   const wantsEdit = editPickToggle ? editPickToggle.checked : false;
   const wantsAlbum = albumPickToggle ? albumPickToggle.checked : false;
   if (wantsEdit && state.limit && state.limit > 0) {
-    const currentEdit = state.photos.filter((photo) => photo.needsEdit).length;
-    const willAdd = state.photos.filter(
-      (photo) => state.selected.has(photo.id) && !photo.needsEdit
-    ).length;
+    const { currentEdit, willAdd } = getEditCounts();
     if (currentEdit + willAdd > state.limit) {
       alert("Batas edit sudah tercapai. Kurangi pilihan edit.");
       return;
     }
   }
   if (wantsAlbum) {
-    const currentAlbum = state.photos.filter((photo) => photo.forAlbum).length;
-    const willAdd = state.photos.filter(
-      (photo) => state.selected.has(photo.id) && !photo.forAlbum
-    ).length;
+    const { currentAlbum, willAdd } = getAlbumCounts();
     if (currentAlbum + willAdd > 37) {
       alert("Batas album maksimal 37 foto. Kurangi pilihan album.");
       return;
@@ -851,5 +861,29 @@ if (pinResetBtn) {
     if (!ok) return;
     localStorage.removeItem(getPinKey());
     alert("PIN vendor berhasil di-reset. Set PIN baru jika perlu.");
+  });
+}
+
+if (editPickToggle) {
+  editPickToggle.addEventListener("change", () => {
+    if (!editPickToggle.checked) return;
+    if (state.limit && state.limit > 0) {
+      const { currentEdit, willAdd } = getEditCounts();
+      if (currentEdit + willAdd > state.limit) {
+        editPickToggle.checked = false;
+        alert("Batas edit sudah tercapai. Kurangi pilihan edit.");
+      }
+    }
+  });
+}
+
+if (albumPickToggle) {
+  albumPickToggle.addEventListener("change", () => {
+    if (!albumPickToggle.checked) return;
+    const { currentAlbum, willAdd } = getAlbumCounts();
+    if (currentAlbum + willAdd > 37) {
+      albumPickToggle.checked = false;
+      alert("Batas album maksimal 37 foto. Kurangi pilihan album.");
+    }
   });
 }
