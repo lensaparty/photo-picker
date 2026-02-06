@@ -70,6 +70,8 @@ const state = {
   folderId: "",
 };
 
+let autosaveTimer = null;
+
 const DRIVE_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbyGxjzwUcW-KxKm0M5pbR1kpkViqyzBWL76T4PRzppHX5ntF5BtpRyII8T3GZlK2ulplA/exec";
 const FUNCTION_ENDPOINT = "/.netlify/functions/drive-list";
@@ -167,6 +169,64 @@ function getLimitKey(folderId) {
 
 function getLimitLockKey(folderId) {
   return `photoPicker.limitLock.${folderId}`;
+}
+
+function getStateKey(folderId) {
+  return `photoPicker.state.${MODE}.${folderId}`;
+}
+
+function scheduleAutosave() {
+  if (!state.folderId) return;
+  if (autosaveTimer) clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(saveStateForFolder, 300);
+}
+
+function saveStateForFolder() {
+  if (!state.folderId) return;
+  const payload = {
+    selected: Array.from(state.selected),
+    photos: state.photos.map((photo) => ({
+      id: photo.id,
+      caption: photo.caption,
+      notes: photo.notes,
+      edited: photo.edited,
+      pickedBy: photo.pickedBy,
+      needsEdit: photo.needsEdit,
+      forAlbum: photo.forAlbum,
+      locked: photo.locked,
+    })),
+  };
+  localStorage.setItem(getStateKey(state.folderId), JSON.stringify(payload));
+}
+
+function restoreStateForFolder(folderId) {
+  const raw = localStorage.getItem(getStateKey(folderId));
+  if (!raw) return;
+  try {
+    const payload = JSON.parse(raw);
+    if (payload.selected) {
+      state.selected = new Set(payload.selected);
+    }
+    if (Array.isArray(payload.photos)) {
+      const map = new Map(payload.photos.map((p) => [p.id, p]));
+      state.photos = state.photos.map((photo) => {
+        const saved = map.get(photo.id);
+        if (!saved) return photo;
+        return {
+          ...photo,
+          caption: saved.caption || "",
+          notes: saved.notes || "",
+          edited: !!saved.edited,
+          pickedBy: saved.pickedBy || photo.pickedBy,
+          needsEdit: !!saved.needsEdit,
+          forAlbum: !!saved.forAlbum,
+          locked: !!saved.locked,
+        };
+      });
+    }
+  } catch (error) {
+    localStorage.removeItem(getStateKey(folderId));
+  }
 }
 
 function updateLimitInfo() {
@@ -357,6 +417,7 @@ function applyEditsToSelected() {
       "Foto sudah ditandai. Silakan Export Terpilih lalu kirim ke vendor/FG."
     );
   }
+  scheduleAutosave();
 }
 
 function matchesFilter(photo) {
@@ -424,6 +485,7 @@ function renderGrid() {
       setActive(photo.id);
       updateCount();
       renderGrid();
+      scheduleAutosave();
     });
 
     grid.appendChild(card);
@@ -431,6 +493,7 @@ function renderGrid() {
 }
 
 function resetAll() {
+  const prevFolder = state.folderId;
   state.photos.forEach((photo) => URL.revokeObjectURL(photo.url));
   state.photos = [];
   state.selected.clear();
@@ -439,6 +502,9 @@ function resetAll() {
   state.folderId = "";
   state.limit = null;
   state.limitLocked = false;
+  if (prevFolder) {
+    localStorage.removeItem(getStateKey(prevFolder));
+  }
   updateCount();
   renderGrid();
   setActive(null);
@@ -528,6 +594,7 @@ loadBtn.addEventListener("click", async () => {
     state.activeId = photos[0]?.id || null;
     state.folderId = folderId;
     loadLimitForFolder(folderId);
+    restoreStateForFolder(folderId);
     state.page = 1;
     renderGrid();
     updateCount();
@@ -575,6 +642,7 @@ selectAllBtn.addEventListener("click", () => {
   updateCount();
   renderGrid();
   setActive(state.activeId);
+  scheduleAutosave();
 });
 
 pillButtons.forEach((btn) => {
@@ -585,6 +653,7 @@ pillButtons.forEach((btn) => {
     if (active && !active.locked) {
       active.pickedBy = btn.dataset.picked;
       renderGrid();
+      scheduleAutosave();
     }
   });
 });
@@ -599,6 +668,7 @@ function setLockForSelected(locked) {
   });
   renderGrid();
   setActive(state.activeId);
+  scheduleAutosave();
 }
 
 lockBtn.addEventListener("click", () => setLockForSelected(true));
@@ -611,6 +681,7 @@ clearActiveBtn.addEventListener("click", () => {
   setActive(null);
   updateCount();
   renderGrid();
+  scheduleAutosave();
 });
 
 clearBtn.addEventListener("click", () => {
@@ -766,6 +837,7 @@ function applyClientSelection(text) {
   updateCount();
   renderGrid();
   setActive(state.activeId);
+  scheduleAutosave();
 }
 
 if (importBtn) {
@@ -866,24 +938,28 @@ if (pinResetBtn) {
 
 if (editPickToggle) {
   editPickToggle.addEventListener("change", () => {
-    if (!editPickToggle.checked) return;
-    if (state.limit && state.limit > 0) {
-      const { currentEdit, willAdd } = getEditCounts();
-      if (currentEdit + willAdd > state.limit) {
-        editPickToggle.checked = false;
-        alert("Batas edit sudah tercapai. Kurangi pilihan edit.");
+    if (editPickToggle.checked) {
+      if (state.limit && state.limit > 0) {
+        const { currentEdit, willAdd } = getEditCounts();
+        if (currentEdit + willAdd > state.limit) {
+          editPickToggle.checked = false;
+          alert("Batas edit sudah tercapai. Kurangi pilihan edit.");
+        }
       }
     }
+    scheduleAutosave();
   });
 }
 
 if (albumPickToggle) {
   albumPickToggle.addEventListener("change", () => {
-    if (!albumPickToggle.checked) return;
-    const { currentAlbum, willAdd } = getAlbumCounts();
-    if (currentAlbum + willAdd > 37) {
-      albumPickToggle.checked = false;
-      alert("Batas album maksimal 37 foto. Kurangi pilihan album.");
+    if (albumPickToggle.checked) {
+      const { currentAlbum, willAdd } = getAlbumCounts();
+      if (currentAlbum + willAdd > 37) {
+        albumPickToggle.checked = false;
+        alert("Batas album maksimal 37 foto. Kurangi pilihan album.");
+      }
     }
+    scheduleAutosave();
   });
 }
