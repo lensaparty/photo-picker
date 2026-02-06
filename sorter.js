@@ -14,6 +14,17 @@ function setStatus(msg) {
   statusText.textContent = msg;
 }
 
+function checkSupport() {
+  const supported = typeof window.showDirectoryPicker === "function";
+  if (!supported) {
+    setStatus("Browser tidak mendukung akses folder. Gunakan Chrome/Edge.");
+    pickSourceBtn.disabled = true;
+    pickOutputBtn.disabled = true;
+    startCopyBtn.disabled = true;
+  }
+  return supported;
+}
+
 function parseNames(text) {
   const names = [];
   text.split(/\r?\n/).forEach((line) => {
@@ -64,16 +75,19 @@ async function copyByName(name, index, destDir) {
 }
 
 pickSourceBtn.addEventListener("click", async () => {
+  if (!checkSupport()) return;
   sourceHandle = await window.showDirectoryPicker();
   setStatus("Folder sumber dipilih.");
 });
 
 pickOutputBtn.addEventListener("click", async () => {
+  if (!checkSupport()) return;
   outputHandle = await window.showDirectoryPicker();
   setStatus("Folder output dipilih.");
 });
 
 startCopyBtn.addEventListener("click", async () => {
+  if (!checkSupport()) return;
   if (!sourceHandle || !outputHandle) {
     setStatus("Pilih folder sumber dan output dulu.");
     return;
@@ -101,3 +115,5 @@ startCopyBtn.addEventListener("click", async () => {
 
   setStatus(`Selesai. Copied: ${copiedCount} file. Missing: ${missing}.`);
 });
+
+checkSupport();
