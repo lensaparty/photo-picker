@@ -56,6 +56,7 @@ const pinMessage = document.getElementById("pinMessage");
 const pinSetInput = document.getElementById("pinSetInput");
 const pinSetBtn = document.getElementById("pinSetBtn");
 const pinResetBtn = document.getElementById("pinResetBtn");
+const showSelectedOnly = document.getElementById("showSelectedOnly");
 
 const MODE = document.body.dataset.mode || "vendor";
 document.body.classList.add(`mode-${MODE}`);
@@ -441,6 +442,9 @@ function applyEditsToSelected() {
 }
 
 function matchesFilter(photo) {
+  if (!isClientMode && showSelectedOnly?.checked && !state.selected.has(photo.id)) {
+    return false;
+  }
   if (!isClientMode) {
     const filter = statusFilter.value;
     if (filter === "fg" && photo.pickedBy !== "fg") return false;
@@ -863,6 +867,11 @@ function applyClientSelection(text) {
 if (importBtn) {
   importBtn.addEventListener("click", () => {
     applyClientSelection(importInput.value);
+    if (showSelectedOnly) {
+      showSelectedOnly.checked = true;
+      state.page = 1;
+      renderGrid();
+    }
   });
 }
 
@@ -981,5 +990,12 @@ if (albumPickToggle) {
       }
     }
     scheduleAutosave();
+  });
+}
+
+if (showSelectedOnly) {
+  showSelectedOnly.addEventListener("change", () => {
+    state.page = 1;
+    renderGrid();
   });
 }
