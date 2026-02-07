@@ -23,6 +23,13 @@ export async function onRequest({ request }) {
   }
 
   try {
+    const cache = caches.default;
+    const cacheKey = new Request(url.toString(), { method: "GET" });
+    const cached = await cache.match(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const res = await fetch(
       `${DRIVE_ENDPOINT}?folderId=${encodeURIComponent(folderId)}`
     );
@@ -33,7 +40,15 @@ export async function onRequest({ request }) {
         { status: res.status, headers }
       );
     }
-    return new Response(body, { status: 200, headers });
+    const response = new Response(body, {
+      status: 200,
+      headers: {
+        ...headers,
+        "Cache-Control": "public, max-age=600, s-maxage=3600",
+      },
+    });
+    await cache.put(cacheKey, response.clone());
+    return response;
   } catch (error) {
     return new Response(JSON.stringify({ files: [], error: error.message }), {
       status: 500,
