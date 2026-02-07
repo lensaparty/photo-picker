@@ -1,18 +1,18 @@
 :root {
-  color-scheme: light;
-  --bg: #f4efe8;
-  --panel: #fff7f0;
-  --panel-strong: #ffffff;
-  --text: #1f1a17;
-  --muted: #6c5f57;
-  --accent: #dd6b4a;
-  --accent-dark: #b35033;
-  --border: #ead7c8;
-  --shadow: 0 24px 60px rgba(52, 30, 18, 0.14);
-  --shadow-soft: 0 10px 30px rgba(52, 30, 18, 0.08);
-  --radius-xl: 28px;
-  --radius-lg: 20px;
-  --radius-md: 14px;
+  color-scheme: dark;
+  --bg: #0f1115;
+  --panel: #1c2027;
+  --panel-strong: #232832;
+  --text: #f5f6f8;
+  --muted: #a9b0bc;
+  --accent: #c7f000;
+  --accent-dark: #95b800;
+  --border: #2f3643;
+  --shadow: 0 26px 60px rgba(0, 0, 0, 0.35);
+  --shadow-soft: 0 14px 32px rgba(0, 0, 0, 0.25);
+  --radius-xl: 24px;
+  --radius-lg: 18px;
+  --radius-md: 12px;
 }
 
 * {
@@ -24,10 +24,10 @@ body {
   font-family: "DM Sans", sans-serif;
   color: var(--text);
   background:
-    radial-gradient(circle at 10% 10%, rgba(255, 229, 204, 0.8) 0%, transparent 55%),
-    radial-gradient(circle at 90% 10%, rgba(255, 223, 190, 0.7) 0%, transparent 60%),
-    radial-gradient(circle at 50% 100%, rgba(234, 214, 197, 0.6) 0%, transparent 60%),
-    linear-gradient(160deg, #f4efe8 0%, #fdf6ef 60%, #f1e1d4 100%);
+    radial-gradient(circle at 15% 10%, rgba(199, 240, 0, 0.08) 0%, transparent 45%),
+    radial-gradient(circle at 85% 10%, rgba(80, 160, 255, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 50% 120%, rgba(199, 240, 0, 0.06) 0%, transparent 55%),
+    linear-gradient(160deg, #0d0f14 0%, #10141b 60%, #0a0c11 100%);
   min-height: 100vh;
   padding: 28px 24px 40px;
 }
@@ -53,8 +53,8 @@ p {
   margin-bottom: 24px;
   padding: 18px 20px;
   border-radius: var(--radius-xl);
-  background: rgba(255, 247, 240, 0.9);
-  border: 1px solid var(--border);
+  background: rgba(22, 26, 33, 0.85);
+  border: 1px solid #2b323d;
   box-shadow: var(--shadow-soft);
   backdrop-filter: blur(8px);
 }
@@ -96,7 +96,7 @@ button:hover {
 
 .primary {
   background: var(--accent);
-  color: white;
+  color: #11140d;
   border-color: transparent;
 }
 
@@ -105,9 +105,9 @@ button:hover {
 }
 
 .danger {
-  background: #fce7e0;
-  border-color: #f6c4b5;
-  color: #a43c26;
+  background: #402326;
+  border-color: #5a2e33;
+  color: #ffb1a3;
 }
 
 .layout {
@@ -134,7 +134,7 @@ button:hover {
   width: 180px;
   height: 180px;
   border-radius: 50%;
-  background: rgba(224, 111, 79, 0.12);
+  background: rgba(199, 240, 0, 0.08);
   pointer-events: none;
 }
 
@@ -155,7 +155,7 @@ button:hover {
 }
 
 #countPill {
-  background: #fff;
+  background: #1f242e;
   border: 1px solid var(--border);
   padding: 6px 12px;
   border-radius: 999px;
@@ -263,7 +263,8 @@ button:hover {
   border: 1px solid var(--border);
   padding: 10px 12px;
   font-family: inherit;
-  background: #fff;
+  background: #161a22;
+  color: var(--text);
 }
 
 .grid {
@@ -287,7 +288,7 @@ button:hover {
 }
 
 .card {
-  background: white;
+  background: #181d26;
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -309,7 +310,7 @@ button:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f6ede4;
+  background: #222734;
   color: var(--muted);
   font-weight: 600;
 }
@@ -329,7 +330,7 @@ button:hover {
 }
 
 .badge {
-  background: #f6ede4;
+  background: #222734;
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 0.72rem;
@@ -360,7 +361,7 @@ button:hover {
 }
 
 .preview-wrap {
-  background: #fff;
+  background: #151a22;
   border-radius: var(--radius-lg);
   border: 1px dashed var(--border);
   min-height: 220px;
@@ -426,7 +427,7 @@ button:hover {
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(17, 12, 9, 0.5);
+  background: rgba(9, 11, 16, 0.6);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -438,7 +439,7 @@ button:hover {
 }
 
 .modal-card {
-  background: white;
+  background: #1b2029;
   border-radius: var(--radius-lg);
   padding: 20px;
   max-width: 640px;
@@ -462,6 +463,8 @@ textarea {
   padding: 12px;
   font-family: "DM Sans", sans-serif;
   resize: vertical;
+  background: #161a22;
+  color: var(--text);
 }
 
 @media (max-width: 980px) {
