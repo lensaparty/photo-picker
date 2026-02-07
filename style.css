@@ -116,6 +116,108 @@ button:hover {
   gap: 24px;
 }
 
+.shell {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr) minmax(320px, 0.8fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.sidebar {
+  background: #151922;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
+  position: sticky;
+  top: 24px;
+  height: fit-content;
+}
+
+.brand {
+  font-family: "Fraunces", serif;
+  font-size: 1.2rem;
+  margin-bottom: 16px;
+}
+
+.nav {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nav-item {
+  background: #1b212c;
+  border: 1px solid #2f3643;
+  color: var(--text);
+  padding: 10px 14px;
+  border-radius: 999px;
+  text-decoration: none;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+}
+
+.nav-item.active {
+  background: var(--accent);
+  color: #11140d;
+  border-color: transparent;
+}
+
+.side-meta {
+  margin-top: 18px;
+  display: grid;
+  gap: 8px;
+}
+
+.meta-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+}
+
+.meta-chip {
+  background: #1f242e;
+  border: 1px solid #2f3643;
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat-card {
+  background: #1b212c;
+  border: 1px solid #2f3643;
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 6px 0 2px;
+}
+
+.stat-sub {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
 .panel {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -470,6 +572,12 @@ textarea {
 @media (max-width: 980px) {
   .layout {
     grid-template-columns: 1fr;
+  }
+  .shell {
+    grid-template-columns: 1fr;
+  }
+  .sidebar {
+    position: static;
   }
   .topbar {
     flex-direction: column;

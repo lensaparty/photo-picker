@@ -22,14 +22,43 @@
     </div>
   </header>
 
-  <main class="layout">
+  <main class="shell">
+    <aside class="sidebar">
+      <div class="brand">Lensaparty</div>
+      <div class="nav">
+        <button class="nav-item active">Vendor / FG</button>
+        <a class="nav-item" href="client.html">Client View</a>
+        <a class="nav-item" href="sorter.html">Local Sorter</a>
+      </div>
+      <div class="side-meta">
+        <div class="meta-label">Quick Stats</div>
+        <div class="meta-chip">Edit limit <span id="sideEditLimit">-</span></div>
+        <div class="meta-chip">Album <span id="sideAlbumCount">0</span></div>
+      </div>
+    </aside>
+
     <section class="panel">
       <div class="panel-header">
         <h2>Input & Filter</h2>
         <div class="counter-stack">
           <span id="countPill">0 dipilih</span>
-          <span id="editCounter" class="badge small">Edit: 0/0</span>
-          <span id="albumCounter" class="badge small">Album: 0/34-37</span>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-label">Terpilih</div>
+          <div class="stat-value" id="statSelected">0</div>
+          <div class="stat-sub">Total pilihan aktif</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Edit</div>
+          <div class="stat-value" id="statEdit">0/0</div>
+          <div class="stat-sub">Mengikuti batas vendor</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Album</div>
+          <div class="stat-value" id="statAlbum">0/34-37</div>
+          <div class="stat-sub">Target album fix</div>
         </div>
       </div>
 

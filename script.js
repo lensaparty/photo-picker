@@ -46,6 +46,11 @@ const editPickToggle = document.getElementById("editPickToggle");
 const albumPickToggle = document.getElementById("albumPickToggle");
 const editCounter = document.getElementById("editCounter");
 const albumCounter = document.getElementById("albumCounter");
+const statSelected = document.getElementById("statSelected");
+const statEdit = document.getElementById("statEdit");
+const statAlbum = document.getElementById("statAlbum");
+const sideEditLimit = document.getElementById("sideEditLimit");
+const sideAlbumCount = document.getElementById("sideAlbumCount");
 const welcomeModal = document.getElementById("welcomeModal");
 const welcomeClose = document.getElementById("welcomeClose");
 const pinModal = document.getElementById("pinModal");
@@ -277,6 +282,16 @@ function updateAlbumInfo() {
 function updateCounters() {
   const editCount = state.photos.filter((photo) => photo.needsEdit).length;
   const albumCount = state.photos.filter((photo) => photo.forAlbum).length;
+  if (statSelected) statSelected.textContent = String(state.selected.size);
+  if (statEdit) {
+    const limitLabel = state.limit && state.limit > 0 ? state.limit : 0;
+    statEdit.textContent = `${editCount}/${limitLabel}`;
+  }
+  if (statAlbum) statAlbum.textContent = `${albumCount}/34-37`;
+  if (sideEditLimit) {
+    sideEditLimit.textContent = state.limit && state.limit > 0 ? state.limit : "-";
+  }
+  if (sideAlbumCount) sideAlbumCount.textContent = String(albumCount);
   if (editCounter) {
     const limitLabel = state.limit && state.limit > 0 ? state.limit : 0;
     editCounter.textContent = `Edit: ${editCount}/${limitLabel}`;
