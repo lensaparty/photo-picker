@@ -41,6 +41,7 @@ const importBtn = document.getElementById("importBtn");
 const copyClientLinkBtn = document.getElementById("copyClientLinkBtn");
 const limitBadge = document.getElementById("limitBadge");
 const limitWarning = document.getElementById("limitWarning");
+const sidebarToggle = document.getElementById("sidebarToggle");
 const albumInfo = document.getElementById("albumInfo");
 const editPickToggle = document.getElementById("editPickToggle");
 const albumPickToggle = document.getElementById("albumPickToggle");
@@ -993,6 +994,12 @@ if (pinResetBtn) {
     if (!ok) return;
     localStorage.removeItem(getPinKey());
     alert("PIN vendor berhasil di-reset. Set PIN baru jika perlu.");
+  });
+}
+
+if (sidebarToggle) {
+  sidebarToggle.addEventListener("click", () => {
+    document.body.classList.toggle("sidebar-collapsed");
   });
 }
 

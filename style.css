@@ -123,6 +123,10 @@ button:hover {
   align-items: start;
 }
 
+.sidebar-collapsed .shell {
+  grid-template-columns: 72px minmax(0, 1fr) minmax(320px, 0.8fr);
+}
+
 .sidebar {
   background: #151922;
   border: 1px solid var(--border);
@@ -132,6 +136,11 @@ button:hover {
   position: sticky;
   top: 24px;
   height: fit-content;
+  transition: width 0.2s ease, padding 0.2s ease;
+}
+
+.sidebar-collapsed .sidebar {
+  padding: 16px 10px;
 }
 
 .brand {
@@ -159,6 +168,21 @@ button:hover {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.nav-item .label {
+  white-space: nowrap;
+}
+
+.sidebar-collapsed .nav-item .label {
+  display: none;
+}
+
+.sidebar-collapsed .brand,
+.sidebar-collapsed .side-meta,
+.sidebar-collapsed .meta-label,
+.sidebar-collapsed .meta-chip {
+  display: none;
 }
 
 .nav-item.active {
