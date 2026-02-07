@@ -7,6 +7,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithPopup,
   signOut,
+  sendPasswordResetEmail,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
 const firebaseConfig = {
@@ -45,6 +46,7 @@ export function initAuthPage() {
   const authError = document.getElementById("authError");
   const tabLogin = document.getElementById("tabLogin");
   const tabRegister = document.getElementById("tabRegister");
+  const forgotPassword = document.getElementById("forgotPassword");
 
   function showError(msg) {
     if (!authError) return;
@@ -97,6 +99,21 @@ export function initAuthPage() {
       redirectByRole(cred.user);
     } catch (err) {
       showError("Gagal login dengan Google.");
+    }
+  });
+
+  forgotPassword?.addEventListener("click", async () => {
+    showError("");
+    const email = document.getElementById("loginEmail").value.trim();
+    if (!email) {
+      showError("Masukkan email terlebih dahulu.");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      showError("Link reset password sudah dikirim ke email.");
+    } catch (err) {
+      showError("Gagal kirim reset password. Cek email.");
     }
   });
 
