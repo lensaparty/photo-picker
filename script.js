@@ -62,6 +62,7 @@ const pinMessage = document.getElementById("pinMessage");
 const pinSetInput = document.getElementById("pinSetInput");
 const pinSetBtn = document.getElementById("pinSetBtn");
 const pinResetBtn = document.getElementById("pinResetBtn");
+const themeToggle = document.getElementById("themeToggle");
 const showSelectedOnly = document.getElementById("showSelectedOnly");
 
 const MODE = document.body.dataset.mode || "vendor";
@@ -987,6 +988,20 @@ if (pinResetBtn) {
     if (!ok) return;
     localStorage.removeItem(getPinKey());
     alert("PIN vendor berhasil di-reset. Set PIN baru jika perlu.");
+  });
+}
+
+if (themeToggle) {
+  const key = "photoPicker.theme";
+  const saved = localStorage.getItem(key) || "light";
+  document.body.setAttribute("data-theme", saved);
+  themeToggle.textContent = saved === "dark" ? "Light" : "Dark";
+
+  themeToggle.addEventListener("click", () => {
+    const next = document.body.getAttribute("data-theme") === "dark" ? "light" : "dark";
+    document.body.setAttribute("data-theme", next);
+    localStorage.setItem(key, next);
+    themeToggle.textContent = next === "dark" ? "Light" : "Dark";
   });
 }
 
