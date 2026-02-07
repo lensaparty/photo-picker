@@ -998,8 +998,17 @@ if (pinResetBtn) {
 }
 
 if (sidebarToggle) {
+  const key = `photoPicker.sidebarCollapsed.${MODE}`;
+  const saved = localStorage.getItem(key) === "true";
+  if (saved) {
+    document.body.classList.add("sidebar-collapsed");
+  }
   sidebarToggle.addEventListener("click", () => {
     document.body.classList.toggle("sidebar-collapsed");
+    localStorage.setItem(
+      key,
+      document.body.classList.contains("sidebar-collapsed")
+    );
   });
 }
 
