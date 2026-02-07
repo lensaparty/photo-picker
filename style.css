@@ -544,6 +544,36 @@ body[data-theme="dark"] .preview-wrap {
   flex-wrap: wrap;
 }
 
+.auth-panel {
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.auth-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.auth-tabs .active {
+  background: var(--accent);
+  color: #11140d;
+  border-color: transparent;
+}
+
+.auth-form {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.auth-divider {
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 10px 0;
+}
+
 .muted {
   color: var(--muted);
   font-size: 0.9rem;

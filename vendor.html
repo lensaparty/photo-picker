@@ -18,6 +18,7 @@
     </div>
     <div class="top-actions">
       <button id="themeToggle" class="ghost">Dark</button>
+      <button id="logoutBtn" class="ghost">Logout</button>
       <button id="exportBtn" class="ghost">Export Terpilih</button>
       <button id="clearBtn" class="danger">Reset</button>
     </div>
@@ -267,5 +268,9 @@
   </div>
 
   <script src="script.js"></script>
+  <script type="module">
+    import { guardPage } from "./auth.js";
+    guardPage("admin");
+  </script>
 </body>
 </html>

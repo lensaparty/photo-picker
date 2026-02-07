@@ -13,23 +13,53 @@
   <header class="topbar">
     <div>
       <h1>Photo Picker</h1>
-      <p class="subtitle">Landing singkat untuk memilih peran sebelum masuk aplikasi.</p>
+      <p class="subtitle">Masuk atau buat akun untuk melanjutkan.</p>
     </div>
   </header>
 
   <main class="layout" style="grid-template-columns: 1fr;">
-    <section class="panel">
+    <section class="panel auth-panel">
       <div class="panel-header">
-        <h2>Selamat Datang</h2>
+        <h2>Welcome Back</h2>
       </div>
-      <p class="subtitle" style="margin-bottom:16px;">
-        Pilih peranmu untuk melanjutkan. Vendor/FG menyiapkan foto dan mengatur batas, Client memilih foto dan mengirim hasil.
-      </p>
-      <div class="actions">
-        <a class="primary" href="vendor.html" style="text-decoration:none; padding:12px 18px; border-radius:999px;">Masuk sebagai Vendor / FG</a>
-        <a class="ghost" href="client.html" style="text-decoration:none; padding:12px 18px; border-radius:999px; border:1px solid var(--border);">Masuk sebagai Client</a>
+      <div class="auth-tabs">
+        <button id="tabLogin" class="ghost active">Login</button>
+        <button id="tabRegister" class="ghost">Create Account</button>
       </div>
+
+      <div id="authError" class="muted" style="margin-bottom:8px;"></div>
+
+      <form id="loginForm" class="auth-form">
+        <div class="field">
+          <label for="loginEmail">Email</label>
+          <input id="loginEmail" type="email" placeholder="you@email.com" required />
+        </div>
+        <div class="field">
+          <label for="loginPassword">Password</label>
+          <input id="loginPassword" type="password" placeholder="••••••••" required />
+        </div>
+        <button type="submit" class="primary">Log In</button>
+      </form>
+
+      <form id="registerForm" class="auth-form" style="display:none;">
+        <div class="field">
+          <label for="registerEmail">Email</label>
+          <input id="registerEmail" type="email" placeholder="you@email.com" required />
+        </div>
+        <div class="field">
+          <label for="registerPassword">Password</label>
+          <input id="registerPassword" type="password" placeholder="Min. 6 karakter" required />
+        </div>
+        <button type="submit" class="primary">Create Account</button>
+      </form>
+
+      <div class="auth-divider">atau</div>
+      <button id="googleLogin" class="ghost">Continue with Google</button>
     </section>
   </main>
 </body>
+<script type="module">
+  import { initAuthPage } from "./auth.js";
+  initAuthPage();
+</script>
 </html>
