@@ -77,7 +77,7 @@ let autosaveTimer = null;
 
 const DRIVE_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbyGxjzwUcW-KxKm0M5pbR1kpkViqyzBWL76T4PRzppHX5ntF5BtpRyII8T3GZlK2ulplA/exec";
-const FUNCTION_ENDPOINT = "/.netlify/functions/drive-list";
+const FUNCTION_ENDPOINT = "/drive-list";
 
 const PICKED_LABEL = {
   fg: "FG",
