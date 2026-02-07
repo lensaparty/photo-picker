@@ -51,6 +51,9 @@ const statEdit = document.getElementById("statEdit");
 const statAlbum = document.getElementById("statAlbum");
 const sideEditLimit = document.getElementById("sideEditLimit");
 const sideAlbumCount = document.getElementById("sideAlbumCount");
+const progressSelected = document.getElementById("progressSelected");
+const progressEdit = document.getElementById("progressEdit");
+const progressAlbum = document.getElementById("progressAlbum");
 const welcomeModal = document.getElementById("welcomeModal");
 const welcomeClose = document.getElementById("welcomeClose");
 const pinModal = document.getElementById("pinModal");
@@ -282,6 +285,7 @@ function updateAlbumInfo() {
 function updateCounters() {
   const editCount = state.photos.filter((photo) => photo.needsEdit).length;
   const albumCount = state.photos.filter((photo) => photo.forAlbum).length;
+  const selectedCount = state.selected.size;
   if (statSelected) statSelected.textContent = String(state.selected.size);
   if (statEdit) {
     const limitLabel = state.limit && state.limit > 0 ? state.limit : 0;
@@ -292,6 +296,18 @@ function updateCounters() {
     sideEditLimit.textContent = state.limit && state.limit > 0 ? state.limit : "-";
   }
   if (sideAlbumCount) sideAlbumCount.textContent = String(albumCount);
+
+  if (progressSelected) {
+    const total = state.photos.length || 1;
+    progressSelected.style.width = `${Math.min(100, (selectedCount / total) * 100)}%`;
+  }
+  if (progressEdit) {
+    const limit = state.limit && state.limit > 0 ? state.limit : 1;
+    progressEdit.style.width = `${Math.min(100, (editCount / limit) * 100)}%`;
+  }
+  if (progressAlbum) {
+    progressAlbum.style.width = `${Math.min(100, (albumCount / 37) * 100)}%`;
+  }
   if (editCounter) {
     const limitLabel = state.limit && state.limit > 0 ? state.limit : 0;
     editCounter.textContent = `Edit: ${editCount}/${limitLabel}`;

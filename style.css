@@ -156,12 +156,26 @@ button:hover {
   font-weight: 600;
   cursor: pointer;
   text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .nav-item.active {
   background: var(--accent);
   color: #11140d;
   border-color: transparent;
+}
+
+.nav-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #2a3240;
+  font-size: 0.8rem;
 }
 
 .side-meta {
@@ -198,6 +212,12 @@ button:hover {
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   box-shadow: var(--shadow-soft);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
 .stat-label {
@@ -216,6 +236,23 @@ button:hover {
 .stat-sub {
   color: var(--muted);
   font-size: 0.85rem;
+}
+
+.progress {
+  height: 8px;
+  background: #12161d;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid #2f3643;
+  margin-top: 10px;
+}
+
+.progress span {
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: var(--accent);
+  transition: width 0.2s ease;
 }
 
 .panel {
