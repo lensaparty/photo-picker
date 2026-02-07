@@ -11,6 +11,8 @@ const filterRaw = document.getElementById("filterRaw");
 const selectAllBtn = document.getElementById("selectAllBtn");
 const clearBtn = document.getElementById("clearBtn");
 const exportBtn = document.getElementById("exportBtn");
+const exportBtnDock = document.getElementById("exportBtnDock");
+const resetBtnDock = document.getElementById("resetBtnDock");
 const pagination = document.getElementById("pagination");
 const prevPageBtn = document.getElementById("prevPageBtn");
 const nextPageBtn = document.getElementById("nextPageBtn");
@@ -810,6 +812,18 @@ exportBtn.addEventListener("click", () => {
   }
   exportModal.classList.remove("hidden");
 });
+
+if (exportBtnDock) {
+  exportBtnDock.addEventListener("click", () => {
+    exportBtn.click();
+  });
+}
+
+if (resetBtnDock) {
+  resetBtnDock.addEventListener("click", () => {
+    clearBtn.click();
+  });
+}
 
 closeExport.addEventListener("click", () => {
   exportModal.classList.add("hidden");
