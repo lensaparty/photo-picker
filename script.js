@@ -41,7 +41,6 @@ const importBtn = document.getElementById("importBtn");
 const copyClientLinkBtn = document.getElementById("copyClientLinkBtn");
 const limitBadge = document.getElementById("limitBadge");
 const limitWarning = document.getElementById("limitWarning");
-const sidebarToggle = document.getElementById("sidebarToggle");
 const albumInfo = document.getElementById("albumInfo");
 const editPickToggle = document.getElementById("editPickToggle");
 const albumPickToggle = document.getElementById("albumPickToggle");
@@ -50,8 +49,6 @@ const albumCounter = document.getElementById("albumCounter");
 const statSelected = document.getElementById("statSelected");
 const statEdit = document.getElementById("statEdit");
 const statAlbum = document.getElementById("statAlbum");
-const sideEditLimit = document.getElementById("sideEditLimit");
-const sideAlbumCount = document.getElementById("sideAlbumCount");
 const progressSelected = document.getElementById("progressSelected");
 const progressEdit = document.getElementById("progressEdit");
 const progressAlbum = document.getElementById("progressAlbum");
@@ -293,10 +290,6 @@ function updateCounters() {
     statEdit.textContent = `${editCount}/${limitLabel}`;
   }
   if (statAlbum) statAlbum.textContent = `${albumCount}/34-37`;
-  if (sideEditLimit) {
-    sideEditLimit.textContent = state.limit && state.limit > 0 ? state.limit : "-";
-  }
-  if (sideAlbumCount) sideAlbumCount.textContent = String(albumCount);
 
   if (progressSelected) {
     const total = state.photos.length || 1;
@@ -997,20 +990,6 @@ if (pinResetBtn) {
   });
 }
 
-if (sidebarToggle) {
-  const key = `photoPicker.sidebarCollapsed.${MODE}`;
-  const saved = localStorage.getItem(key) === "true";
-  if (saved) {
-    document.body.classList.add("sidebar-collapsed");
-  }
-  sidebarToggle.addEventListener("click", () => {
-    document.body.classList.toggle("sidebar-collapsed");
-    localStorage.setItem(
-      key,
-      document.body.classList.contains("sidebar-collapsed")
-    );
-  });
-}
 
 if (editPickToggle) {
   editPickToggle.addEventListener("change", () => {

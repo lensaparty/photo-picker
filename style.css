@@ -116,112 +116,6 @@ button:hover {
   gap: 24px;
 }
 
-.shell {
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr) minmax(320px, 0.8fr);
-  gap: 24px;
-  align-items: start;
-}
-
-.sidebar-collapsed .shell {
-  grid-template-columns: 72px minmax(0, 1fr) minmax(320px, 0.8fr);
-}
-
-.sidebar {
-  background: #151922;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  padding: 18px;
-  box-shadow: var(--shadow-soft);
-  position: sticky;
-  top: 24px;
-  height: fit-content;
-  transition: width 0.2s ease, padding 0.2s ease;
-}
-
-.sidebar-collapsed .sidebar {
-  padding: 16px 10px;
-}
-
-.brand {
-  font-family: "Fraunces", serif;
-  font-size: 1.2rem;
-  margin-bottom: 16px;
-}
-
-.nav {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.nav-item {
-  background: #1b212c;
-  border: 1px solid #2f3643;
-  color: var(--text);
-  padding: 10px 14px;
-  border-radius: 999px;
-  text-decoration: none;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: left;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.nav-item .label {
-  white-space: nowrap;
-}
-
-.sidebar-collapsed .nav-item .label {
-  display: none;
-}
-
-.sidebar-collapsed .brand,
-.sidebar-collapsed .side-meta,
-.sidebar-collapsed .meta-label,
-.sidebar-collapsed .meta-chip {
-  display: none;
-}
-
-.nav-item.active {
-  background: var(--accent);
-  color: #11140d;
-  border-color: transparent;
-}
-
-.nav-icon {
-  width: 18px;
-  height: 18px;
-  border-radius: 6px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #2a3240;
-  font-size: 0.8rem;
-}
-
-.side-meta {
-  margin-top: 18px;
-  display: grid;
-  gap: 8px;
-}
-
-.meta-label {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  color: var(--muted);
-  letter-spacing: 0.08em;
-}
-
-.meta-chip {
-  background: #1f242e;
-  border: 1px solid #2f3643;
-  border-radius: 999px;
-  padding: 8px 12px;
-  font-size: 0.85rem;
-}
 
 .stats-grid {
   display: grid;
@@ -636,9 +530,6 @@ textarea {
   }
   .shell {
     grid-template-columns: 1fr;
-  }
-  .sidebar {
-    position: static;
   }
   .topbar {
     flex-direction: column;
