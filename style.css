@@ -156,12 +156,17 @@ body[data-theme="dark"] .danger {
 }
 
 .stat-card {
-  background: #1b212c;
-  border: 1px solid #2f3643;
+  background: #fff;
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 14px 16px;
   box-shadow: var(--shadow-soft);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+body[data-theme="dark"] .stat-card {
+  background: #1b212c;
+  border: 1px solid #2f3643;
 }
 
 .stat-card:hover {
@@ -189,10 +194,10 @@ body[data-theme="dark"] .danger {
 
 .progress {
   height: 8px;
-  background: #12161d;
+  background: #efe6dd;
   border-radius: 999px;
   overflow: hidden;
-  border: 1px solid #2f3643;
+  border: 1px solid var(--border);
   margin-top: 10px;
 }
 
@@ -202,6 +207,11 @@ body[data-theme="dark"] .danger {
   width: 0%;
   background: var(--accent);
   transition: width 0.2s ease;
+}
+
+body[data-theme="dark"] .progress {
+  background: #12161d;
+  border: 1px solid #2f3643;
 }
 
 .panel {
