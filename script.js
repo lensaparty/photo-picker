@@ -63,6 +63,9 @@ const pinSetInput = document.getElementById("pinSetInput");
 const pinSetBtn = document.getElementById("pinSetBtn");
 const pinResetBtn = document.getElementById("pinResetBtn");
 const themeToggle = document.getElementById("themeToggle");
+const batchEditBtn = document.getElementById("batchEditBtn");
+const batchAlbumBtn = document.getElementById("batchAlbumBtn");
+const batchClearBtn = document.getElementById("batchClearBtn");
 const showSelectedOnly = document.getElementById("showSelectedOnly");
 
 const MODE = document.body.dataset.mode || "vendor";
@@ -464,6 +467,37 @@ function applyEditsToSelected() {
       "Foto sudah ditandai. Silakan Export Terpilih lalu kirim ke vendor/FG."
     );
   }
+  scheduleAutosave();
+}
+
+function applyBatchTags({ edit, album }) {
+  if (state.selected.size === 0) return;
+
+  if (edit && state.limit && state.limit > 0) {
+    const { currentEdit, willAdd } = getEditCounts();
+    if (currentEdit + willAdd > state.limit) {
+      alert("Batas edit sudah tercapai. Kurangi pilihan edit.");
+      return;
+    }
+  }
+  if (album) {
+    const { currentAlbum, willAdd } = getAlbumCounts();
+    if (currentAlbum + willAdd > 37) {
+      alert("Batas album maksimal 37 foto. Kurangi pilihan album.");
+      return;
+    }
+  }
+
+  state.photos = state.photos.map((photo) => {
+    if (!state.selected.has(photo.id) || photo.locked) return photo;
+    return {
+      ...photo,
+      needsEdit: edit,
+      forAlbum: album,
+    };
+  });
+  renderGrid();
+  setActive(state.activeId);
   scheduleAutosave();
 }
 
@@ -1003,6 +1037,16 @@ if (themeToggle) {
     localStorage.setItem(key, next);
     themeToggle.textContent = next === "dark" ? "Light" : "Dark";
   });
+}
+
+if (batchEditBtn) {
+  batchEditBtn.addEventListener("click", () => applyBatchTags({ edit: true, album: false }));
+}
+if (batchAlbumBtn) {
+  batchAlbumBtn.addEventListener("click", () => applyBatchTags({ edit: false, album: true }));
+}
+if (batchClearBtn) {
+  batchClearBtn.addEventListener("click", () => applyBatchTags({ edit: false, album: false }));
 }
 
 
