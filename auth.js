@@ -39,7 +39,7 @@ const CENTRAL_ADMIN_EMAILS = new Set([
   "mrezawijayakusumah@gmail.com",
 ]);
 
-const REQUIRE_CLIENT_APPROVAL = true;
+const REQUIRE_CLIENT_APPROVAL = false;
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -53,9 +53,27 @@ function normalizeBranchId(value) {
   return (value || "").trim().toLowerCase().replace(/\s+/g, "-");
 }
 
+function safeId(value) {
+  return (value || "").toString().toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+}
+
 function setErrorText(el, msg) {
   if (!el) return;
   el.textContent = msg || "";
+}
+
+function formatAuthError(error) {
+  const code = error?.code || "";
+  if (code.includes("auth/invalid-credential")) return "Email/password salah.";
+  if (code.includes("auth/user-not-found")) return "Akun belum terdaftar.";
+  if (code.includes("auth/wrong-password")) return "Password salah.";
+  if (code.includes("auth/too-many-requests")) return "Terlalu banyak percobaan. Coba lagi sebentar.";
+  if (code.includes("auth/popup-closed-by-user")) return "Popup Google ditutup sebelum selesai.";
+  if (code.includes("auth/unauthorized-domain")) return "Domain belum diizinkan di Firebase Authentication.";
+  if (String(error?.message || "").includes("Missing or insufficient permissions")) {
+    return "Akses Firestore ditolak. Cek Firestore Rules.";
+  }
+  return error?.message || "Terjadi kesalahan saat login.";
 }
 
 function isAdminRole(role) {
@@ -108,7 +126,14 @@ async function resolveContextByUser(user) {
 }
 
 async function handleLoginResult(user, loginMode, authError) {
-  const context = await resolveContextByUser(user);
+  let context;
+  try {
+    context = await resolveContextByUser(user);
+  } catch (error) {
+    await signOut(auth);
+    setErrorText(authError, `Gagal baca role user. ${formatAuthError(error)}`);
+    return false;
+  }
   if (context.role === "blocked") {
     await signOut(auth);
     setErrorText(authError, "Akun belum diizinkan. Hubungi admin pusat/cabang.");
@@ -181,7 +206,7 @@ function initLoginPage({ mode }) {
       const cred = await signInWithEmailAndPassword(auth, email, password);
       await handleLoginResult(cred.user, mode, authError);
     } catch (error) {
-      showError("Gagal login. Cek email dan password.");
+      showError(formatAuthError(error));
     }
   });
 
@@ -194,7 +219,7 @@ function initLoginPage({ mode }) {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
       await handleLoginResult(cred.user, mode, authError);
     } catch (error) {
-      showError("Gagal daftar. Cek format email atau password.");
+      showError(formatAuthError(error));
     }
   });
 
@@ -205,7 +230,7 @@ function initLoginPage({ mode }) {
       const cred = await signInWithPopup(auth, provider);
       await handleLoginResult(cred.user, mode, authError);
     } catch (error) {
-      showError("Gagal login dengan Google.");
+      showError(formatAuthError(error));
     }
   });
 
@@ -220,12 +245,17 @@ function initLoginPage({ mode }) {
       await sendPasswordResetEmail(auth, email);
       showError("Link reset password sudah dikirim ke email.");
     } catch (error) {
-      showError("Gagal kirim reset password. Cek email.");
+      showError(formatAuthError(error));
     }
   });
 
   onAuthStateChanged(auth, async (user) => {
-    if (user) await handleLoginResult(user, mode, authError);
+    if (!user) return;
+    try {
+      await handleLoginResult(user, mode, authError);
+    } catch (error) {
+      showError(formatAuthError(error));
+    }
   });
 
   setTab("login");
@@ -341,7 +371,15 @@ export async function guardPage(requiredRole) {
       window.location.replace("index.html");
       return;
     }
-    const context = await resolveContextByUser(user);
+    let context;
+    try {
+      context = await resolveContextByUser(user);
+    } catch (error) {
+      await signOut(auth);
+      alert(`Gagal validasi role user: ${formatAuthError(error)}`);
+      window.location.replace("index.html");
+      return;
+    }
     if (context.role === "blocked") {
       await signOut(auth);
       window.location.replace("index.html");
@@ -362,4 +400,47 @@ export async function guardPage(requiredRole) {
       window.location.replace("vendor.html");
     }
   });
+}
+
+function getSelectionOwner(mode) {
+  const email = normalizeEmail(auth.currentUser?.email || "");
+  if (!email) return "guest";
+  if (mode === "client") return email;
+  const role = localStorage.getItem("photoPicker.userRole") || "";
+  if (role === "central_admin") return "central_admin";
+  if (role === "branch_admin") {
+    const branchId = localStorage.getItem("photoPicker.userBranch") || "";
+    return branchId ? `branch_${branchId}` : "branch_admin";
+  }
+  return email;
+}
+
+function getSelectionDocRef(folderId, mode) {
+  const owner = getSelectionOwner(mode);
+  const docId = `${safeId(mode)}__${safeId(folderId)}__${safeId(owner)}`;
+  return doc(db, "pickerStates", docId);
+}
+
+export async function loadSelectionState(folderId, mode) {
+  if (!folderId) return null;
+  const ref = getSelectionDocRef(folderId, mode);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return null;
+  const data = snap.data() || {};
+  return data.payload || null;
+}
+
+export async function saveSelectionState(folderId, mode, payload) {
+  if (!folderId) return;
+  const ref = getSelectionDocRef(folderId, mode);
+  await setDoc(
+    ref,
+    {
+      folderId,
+      mode,
+      updatedAt: serverTimestamp(),
+      payload,
+    },
+    { merge: true }
+  );
 }
