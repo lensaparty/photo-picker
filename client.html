@@ -10,21 +10,33 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body data-mode="client" class="mode-client">
-  <header class="topbar">
-    <div>
-      <h1>Photo Picker</h1>
-      <p class="subtitle vendor-only">Mode Vendor/FG: siapkan foto, kunci, dan kirim ke klien.</p>
-      <p class="subtitle client-only">Mode Client: pilih foto dan kirim hasil ke vendor.</p>
-    </div>
-    <div class="top-actions">
-      <button id="themeToggle" class="ghost">Dark</button>
-      <button id="logoutBtn" class="ghost">Logout</button>
-      <button id="exportBtn" class="ghost">Export Terpilih</button>
-      <button id="clearBtn" class="danger">Reset</button>
-    </div>
-  </header>
+  <div class="app-shell">
+    <aside class="side-rail">
+      <div class="side-brand">Lensaparty</div>
+      <div class="side-sub">Client Dashboard</div>
+      <nav class="side-nav">
+        <button class="side-item active" type="button">Photo Picker</button>
+        <button class="side-item" type="button" onclick="location.href='index.html'">Akun</button>
+      </nav>
+    </aside>
 
-  <main class="layout">
+    <div class="workspace">
+      <header class="topbar">
+        <div>
+          <h1>Photo Picker</h1>
+          <p class="subtitle vendor-only">Mode Vendor/FG: siapkan foto, kunci, dan kirim ke klien.</p>
+          <p class="subtitle client-only">Mode Client: pilih foto dan kirim hasil ke vendor.</p>
+        </div>
+        <div class="top-actions">
+          <input id="topSearchInput" class="top-search" placeholder="Cari nama foto..." />
+          <button id="themeToggle" class="ghost">Dark</button>
+          <button id="logoutBtn" class="ghost">Masuk</button>
+          <button id="exportBtn" class="ghost">Dapatkan Unsplash+</button>
+          <button id="clearBtn" class="danger">Kirim gambar</button>
+        </div>
+      </header>
+
+      <main class="layout">
     <section class="panel">
       <div class="panel-header">
         <h2>Input & Filter</h2>
@@ -93,6 +105,15 @@
           <input id="searchInput" placeholder="Nama file..." />
         </div>
       </div>
+      <div class="chip-row">
+        <button type="button" class="filter-chip active" data-tag-filter="all">Semua</button>
+        <button type="button" class="filter-chip" data-tag-filter="potret">Potret</button>
+        <button type="button" class="filter-chip" data-tag-filter="landscape">Landscape</button>
+        <button type="button" class="filter-chip" data-tag-filter="family">Family</button>
+        <button type="button" class="filter-chip" data-tag-filter="pose">Pose</button>
+        <button type="button" class="filter-chip" data-tag-filter="outfit">Outfit</button>
+      </div>
+
       <div class="filter-row">
         <div class="field">
           <label>Ekstensi:</label>
@@ -125,7 +146,10 @@
         </div>
       </div>
       <div id="emptyState" class="empty">
-        Belum ada foto. Tambahkan file gambar untuk mulai memilih.
+        <div class="empty-card">
+          <div class="empty-title">Belum ada foto</div>
+          <div class="empty-sub">Masukkan link folder Google Drive publik lalu klik <strong>Ambil Foto</strong> untuk mulai memilih.</div>
+        </div>
       </div>
     </section>
 
@@ -163,6 +187,8 @@
         <div class="actions">
           <button id="applyBtn" type="button" class="primary">Terapkan ke Terpilih</button>
           <button id="lockBtn" type="button" class="ghost vendor-only">Kunci Terpilih</button>
+        </div>
+        <div class="actions actions-secondary">
           <button id="unlockBtn" type="button" class="ghost vendor-only">Buka Kunci</button>
           <button id="clearActiveBtn" type="button" class="ghost">Hapus Aktif</button>
         </div>
@@ -186,11 +212,13 @@
         </div>
       </form>
     </aside>
-  </main>
+      </main>
+    </div>
+  </div>
 
   <nav class="mobile-dock">
-    <button id="exportBtnDock" class="dock-btn">Export</button>
-    <button id="resetBtnDock" class="dock-btn ghost">Reset</button>
+    <button id="exportBtnDock" class="dock-btn">Dapatkan+</button>
+    <button id="resetBtnDock" class="dock-btn ghost">Kirim gambar</button>
   </nav>
 
   <div id="exportModal" class="modal hidden">
@@ -215,7 +243,7 @@
       </div>
       <div class="muted">
         Silakan pilih foto sesuai paket. Klik foto untuk memilih, lalu tekan
-        <strong>Export Terpilih</strong> untuk menyalin hasil dan kirim ke vendor/FG via WA.
+        <strong>Dapatkan Unsplash+</strong> untuk menyalin hasil dan kirim ke vendor/FG via WA.
       </div>
     </div>
   </div>

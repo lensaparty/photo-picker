@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Client Login - Photo Picker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="auth-hero">
+    <div class="auth-card">
+      <div class="auth-left">
+        <div class="auth-logo">LP</div>
+        <h2>Client Portal</h2>
+        <p class="subtitle">Login klien untuk memilih foto sesuai paket.</p>
+      </div>
+      <div class="auth-right">
+        <div class="auth-tabs">
+          <button id="tabLogin" class="ghost active">Log In</button>
+          <button id="tabRegister" class="ghost">Create Account</button>
+        </div>
+        <div id="authError" class="muted" style="margin-bottom:8px;"></div>
+        <form id="loginForm" class="auth-form">
+          <div class="field">
+            <label for="loginEmail">Email</label>
+            <input id="loginEmail" type="email" placeholder="you@email.com" required />
+          </div>
+          <div class="field">
+            <label for="loginPassword">Password</label>
+            <input id="loginPassword" type="password" placeholder="••••••••" required />
+            <button id="forgotPassword" type="button" class="link-btn">Forgot password?</button>
+          </div>
+          <button type="submit" class="primary full">Log In</button>
+        </form>
+        <form id="registerForm" class="auth-form" style="display:none;">
+          <div class="field">
+            <label for="registerEmail">Email</label>
+            <input id="registerEmail" type="email" placeholder="you@email.com" required />
+          </div>
+          <div class="field">
+            <label for="registerPassword">Password</label>
+            <input id="registerPassword" type="password" placeholder="Min. 6 karakter" required />
+          </div>
+          <button type="submit" class="primary full">Create Account</button>
+        </form>
+        <div class="auth-divider">atau</div>
+        <button id="googleLogin" class="ghost full">Continue with Google</button>
+        <a href="admin-login.html" class="link-btn" style="align-self:center;">Masuk sebagai Admin</a>
+      </div>
+    </div>
+  </main>
+  <script type="module">
+    import { initClientAuthPage } from "./auth.js";
+    initClientAuthPage();
+  </script>
+</body>
+</html>

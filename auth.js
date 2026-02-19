@@ -9,6 +9,20 @@ import {
   signOut,
   sendPasswordResetEmail,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import {
+  getFirestore,
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  query,
+  where,
+  setDoc,
+  addDoc,
+  arrayUnion,
+  serverTimestamp,
+  limit,
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBxXfO1RA6VKhyzCq7Py7ihhhwdH0aXXE0",
@@ -25,68 +39,27 @@ const CENTRAL_ADMIN_EMAILS = new Set([
   "mrezawijayakusumah@gmail.com",
 ]);
 
-// Mapping cabang: admin cabang + daftar client yang diizinkan untuk cabang tsb.
-// Tambah cabang baru dengan format yang sama.
-const BRANCH_ACCESS = {
-  jakarta: {
-    admins: ["admin.jakarta@lensaparty.com"],
-    clients: ["client.jakarta.1@gmail.com", "client.jakarta.2@gmail.com"],
-  },
-  bandung: {
-    admins: ["admin.bandung@lensaparty.com"],
-    clients: ["client.bandung.1@gmail.com"],
-  },
-};
-
-  // jakarta: {
-  //   admins: ["admin.jakarta@lensaparty.com"],
-  //   clients: ["client.jakarta.1@gmail.com", "client.jakarta.2@gmail.com"],
-  // },
-};
-
-// Opsional: kalau ingin client harus disetujui dulu, ubah ke true
-// lalu isi APPROVED_CLIENT_EMAILS.
 const REQUIRE_CLIENT_APPROVAL = true;
-const APPROVED_CLIENT_EMAILS = new Set([
-  // "client1@email.com",
-]);
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+const db = getFirestore(app);
 
 function normalizeEmail(email) {
   return (email || "").trim().toLowerCase();
 }
 
-function normalizeEmailSet(list = []) {
-  return new Set(list.map(normalizeEmail).filter(Boolean));
+function normalizeBranchId(value) {
+  return (value || "").trim().toLowerCase().replace(/\s+/g, "-");
 }
 
-function getBranchIdByAdminEmail(email) {
-  const normalized = normalizeEmail(email);
-  if (!normalized) return null;
-  for (const [branchId, cfg] of Object.entries(BRANCH_ACCESS)) {
-    const admins = normalizeEmailSet(cfg?.admins || []);
-    if (admins.has(normalized)) return branchId;
-  }
-  return null;
+function setErrorText(el, msg) {
+  if (!el) return;
+  el.textContent = msg || "";
 }
 
-function getBranchIdByClientEmail(email) {
-  const normalized = normalizeEmail(email);
-  if (!normalized) return null;
-  for (const [branchId, cfg] of Object.entries(BRANCH_ACCESS)) {
-    const clients = normalizeEmailSet(cfg?.clients || []);
-    if (clients.has(normalized)) return branchId;
-  }
-  return null;
-}
-
-function isApprovedClientEmail(email) {
-  const normalized = normalizeEmail(email);
-  if (!normalized) return false;
-  if (APPROVED_CLIENT_EMAILS.has(normalized)) return true;
-  return !!getBranchIdByClientEmail(normalized);
+function isAdminRole(role) {
+  return role === "central_admin" || role === "branch_admin";
 }
 
 function persistUserScope({ role, branchId }) {
@@ -98,47 +71,74 @@ function persistUserScope({ role, branchId }) {
   }
 }
 
-function getUserRole(email) {
-  const normalized = normalizeEmail(email);
-  if (!normalized) return "guest";
-  if (CENTRAL_ADMIN_EMAILS.has(normalized)) return "central_admin";
-  if (getBranchIdByAdminEmail(normalized)) return "branch_admin";
-  if (!REQUIRE_CLIENT_APPROVAL) return "client";
-  if (isApprovedClientEmail(normalized)) return "client";
-  return "blocked";
+async function getBranchByAdminEmail(emailLower) {
+  const q = query(collection(db, "branches"), where("admins", "array-contains", emailLower), limit(1));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() };
 }
 
-function isAdminRole(role) {
-  return role === "central_admin" || role === "branch_admin";
+async function getClientByEmail(emailLower) {
+  const q = query(collection(db, "clients"), where("emailLower", "==", emailLower), limit(1));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() };
 }
 
-function isAdminEmail(email) {
-  if (!email) return false;
-  return isAdminRole(getUserRole(email));
-}
+async function resolveContextByUser(user) {
+  const email = normalizeEmail(user?.email);
+  if (!email) return { role: "guest", branchId: null };
 
-function redirectByRole(user) {
-  if (!user) return;
-  const normalized = normalizeEmail(user.email);
-  const role = getUserRole(normalized);
-  if (role === "blocked") {
-    signOut(auth);
-    const authError = document.getElementById("authError");
-    if (authError) authError.textContent = "Akun belum diizinkan. Hubungi admin cabang/pusat.";
-    return;
+  if (CENTRAL_ADMIN_EMAILS.has(email)) {
+    return { role: "central_admin", branchId: null };
   }
-  const branchId =
-    role === "branch_admin"
-      ? getBranchIdByAdminEmail(normalized)
-      : role === "client"
-        ? getBranchIdByClientEmail(normalized)
-        : null;
-  persistUserScope({ role, branchId });
-  const target = isAdminRole(role) ? "vendor.html" : "client.html";
-  window.location.replace(target);
+
+  const branch = await getBranchByAdminEmail(email);
+  if (branch) return { role: "branch_admin", branchId: branch.id };
+
+  if (!REQUIRE_CLIENT_APPROVAL) {
+    return { role: "client", branchId: null };
+  }
+
+  const client = await getClientByEmail(email);
+  if (!client) return { role: "blocked", branchId: null };
+  return { role: "client", branchId: client.branchId || null };
 }
 
-export function initAuthPage() {
+async function handleLoginResult(user, loginMode, authError) {
+  const context = await resolveContextByUser(user);
+  if (context.role === "blocked") {
+    await signOut(auth);
+    setErrorText(authError, "Akun belum diizinkan. Hubungi admin pusat/cabang.");
+    return false;
+  }
+
+  if (loginMode === "admin" && !isAdminRole(context.role)) {
+    await signOut(auth);
+    setErrorText(authError, "Akun ini bukan admin. Gunakan login client.");
+    return false;
+  }
+
+  if (loginMode === "client" && isAdminRole(context.role)) {
+    await signOut(auth);
+    setErrorText(authError, "Akun admin harus login dari halaman admin.");
+    return false;
+  }
+
+  persistUserScope(context);
+
+  if (context.role === "client") {
+    const profile = await getClientByEmail(normalizeEmail(user.email));
+    if (profile) localStorage.setItem("photoPicker.clientProfile", JSON.stringify(profile));
+  }
+
+  window.location.replace(isAdminRole(context.role) ? "vendor.html" : "client.html");
+  return true;
+}
+
+function initLoginPage({ mode }) {
   const loginForm = document.getElementById("loginForm");
   const registerForm = document.getElementById("registerForm");
   const googleBtn = document.getElementById("googleLogin");
@@ -146,18 +146,26 @@ export function initAuthPage() {
   const tabLogin = document.getElementById("tabLogin");
   const tabRegister = document.getElementById("tabRegister");
   const forgotPassword = document.getElementById("forgotPassword");
+  const allowRegister = mode === "client";
 
   function showError(msg) {
-    if (!authError) return;
-    authError.textContent = msg || "";
+    setErrorText(authError, msg);
   }
 
   function setTab(which) {
+    if (!allowRegister) {
+      if (registerForm) registerForm.style.display = "none";
+      if (tabRegister) tabRegister.style.display = "none";
+      if (tabLogin) tabLogin.classList.add("active");
+      if (loginForm) loginForm.style.display = "block";
+      showError("");
+      return;
+    }
     const isLogin = which === "login";
-    loginForm.style.display = isLogin ? "block" : "none";
-    registerForm.style.display = isLogin ? "none" : "block";
-    tabLogin.classList.toggle("active", isLogin);
-    tabRegister.classList.toggle("active", !isLogin);
+    if (loginForm) loginForm.style.display = isLogin ? "block" : "none";
+    if (registerForm) registerForm.style.display = isLogin ? "none" : "block";
+    if (tabLogin) tabLogin.classList.toggle("active", isLogin);
+    if (tabRegister) tabRegister.classList.toggle("active", !isLogin);
     showError("");
   }
 
@@ -171,8 +179,8 @@ export function initAuthPage() {
     const password = document.getElementById("loginPassword").value;
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
-      redirectByRole(cred.user);
-    } catch (err) {
+      await handleLoginResult(cred.user, mode, authError);
+    } catch (error) {
       showError("Gagal login. Cek email dan password.");
     }
   });
@@ -184,8 +192,8 @@ export function initAuthPage() {
     const password = document.getElementById("registerPassword").value;
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      redirectByRole(cred.user);
-    } catch (err) {
+      await handleLoginResult(cred.user, mode, authError);
+    } catch (error) {
       showError("Gagal daftar. Cek format email atau password.");
     }
   });
@@ -195,8 +203,8 @@ export function initAuthPage() {
     try {
       const provider = new GoogleAuthProvider();
       const cred = await signInWithPopup(auth, provider);
-      redirectByRole(cred.user);
-    } catch (err) {
+      await handleLoginResult(cred.user, mode, authError);
+    } catch (error) {
       showError("Gagal login dengan Google.");
     }
   });
@@ -211,19 +219,115 @@ export function initAuthPage() {
     try {
       await sendPasswordResetEmail(auth, email);
       showError("Link reset password sudah dikirim ke email.");
-    } catch (err) {
+    } catch (error) {
       showError("Gagal kirim reset password. Cek email.");
     }
   });
 
-  onAuthStateChanged(auth, (user) => {
-    if (user) redirectByRole(user);
+  onAuthStateChanged(auth, async (user) => {
+    if (user) await handleLoginResult(user, mode, authError);
   });
 
   setTab("login");
 }
 
-export function guardPage(requiredRole) {
+export function initAdminAuthPage() {
+  initLoginPage({ mode: "admin" });
+}
+
+export function initClientAuthPage() {
+  initLoginPage({ mode: "client" });
+}
+
+export function getCurrentUserScope() {
+  return {
+    role: localStorage.getItem("photoPicker.userRole") || "",
+    branchId: localStorage.getItem("photoPicker.userBranch") || "",
+  };
+}
+
+export async function createBranchAdmin(branchIdValue, emailValue, actorRole) {
+  if (actorRole !== "central_admin") {
+    throw new Error("forbidden");
+  }
+  const branchId = normalizeBranchId(branchIdValue);
+  const email = normalizeEmail(emailValue);
+  if (!branchId || !email) {
+    throw new Error("invalid");
+  }
+  const ref = doc(db, "branches", branchId);
+  await setDoc(
+    ref,
+    {
+      admins: arrayUnion(email),
+      updatedAt: serverTimestamp(),
+      createdAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+export async function createClientRecord(payload, actor) {
+  const role = actor?.role || "";
+  const actorBranch = actor?.branchId || "";
+  if (!isAdminRole(role)) throw new Error("forbidden");
+
+  const name = (payload?.name || "").trim();
+  const email = normalizeEmail(payload?.email);
+  const phone = (payload?.phone || "").trim();
+  const driveLink = (payload?.driveLink || "").trim();
+  const weddingDate = (payload?.weddingDate || "").trim();
+  let branchId = normalizeBranchId(payload?.branchId);
+
+  if (role === "branch_admin") {
+    branchId = actorBranch;
+  }
+
+  if (!name || !email || !phone || !driveLink || !weddingDate || !branchId) {
+    throw new Error("invalid");
+  }
+
+  const existing = await getClientByEmail(email);
+  if (existing) throw new Error("exists");
+
+  await addDoc(collection(db, "clients"), {
+    name,
+    email,
+    emailLower: email,
+    phone,
+    driveLink,
+    weddingDate,
+    branchId,
+    status: "active",
+    createdByRole: role,
+    createdByUid: auth.currentUser?.uid || "",
+    createdAt: serverTimestamp(),
+  });
+}
+
+export async function listClientsForScope(scope) {
+  const role = scope?.role || "";
+  const branchId = scope?.branchId || "";
+  if (!isAdminRole(role)) return [];
+
+  let q;
+  if (role === "branch_admin") {
+    q = query(collection(db, "clients"), where("branchId", "==", branchId));
+  } else {
+    q = query(collection(db, "clients"));
+  }
+
+  const snap = await getDocs(q);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => {
+      const aa = a?.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+      const bb = b?.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+      return bb - aa;
+    });
+}
+
+export async function guardPage(requiredRole) {
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
     logoutBtn.addEventListener("click", async () => {
@@ -232,26 +336,25 @@ export function guardPage(requiredRole) {
     });
   }
 
-  onAuthStateChanged(auth, (user) => {
+  onAuthStateChanged(auth, async (user) => {
     if (!user) {
       window.location.replace("index.html");
       return;
     }
-    const normalized = normalizeEmail(user.email);
-    const role = getUserRole(normalized);
-    if (role === "blocked") {
-      signOut(auth);
+    const context = await resolveContextByUser(user);
+    if (context.role === "blocked") {
+      await signOut(auth);
       window.location.replace("index.html");
       return;
     }
-    const branchId =
-      role === "branch_admin"
-        ? getBranchIdByAdminEmail(normalized)
-        : role === "client"
-          ? getBranchIdByClientEmail(normalized)
-          : null;
-    persistUserScope({ role, branchId });
-    const isAdmin = isAdminRole(role);
+    persistUserScope(context);
+
+    if (context.role === "client") {
+      const profile = await getClientByEmail(normalizeEmail(user.email));
+      if (profile) localStorage.setItem("photoPicker.clientProfile", JSON.stringify(profile));
+    }
+
+    const isAdmin = isAdminRole(context.role);
     if (requiredRole === "admin" && !isAdmin) {
       window.location.replace("client.html");
     }

@@ -10,63 +10,21 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <h1>Photo Picker</h1>
-      <p class="subtitle">Masuk atau buat akun untuk melanjutkan.</p>
-    </div>
-  </header>
-
   <main class="auth-hero">
-    <div class="auth-card">
-      <div class="auth-left">
-        <div class="auth-logo">LP</div>
-        <h2>Welcome to Photo Picker</h2>
-        <p class="subtitle">
-          Kelola pilihan foto client dengan cepat, aman, dan rapi. Login untuk lanjut.
-        </p>
-      </div>
-      <div class="auth-right">
-        <div class="auth-tabs">
-          <button id="tabLogin" class="ghost active">Log In</button>
-          <button id="tabRegister" class="ghost">Create Account</button>
-        </div>
-
-        <div id="authError" class="muted" style="margin-bottom:8px;"></div>
-
-        <form id="loginForm" class="auth-form">
-          <div class="field">
-            <label for="loginEmail">Email</label>
-            <input id="loginEmail" type="email" placeholder="you@email.com" required />
-          </div>
-          <div class="field">
-            <label for="loginPassword">Password</label>
-            <input id="loginPassword" type="password" placeholder="••••••••" required />
-            <button id="forgotPassword" type="button" class="link-btn">Forgot password?</button>
-          </div>
-          <button type="submit" class="primary full">Log In</button>
-        </form>
-
-        <form id="registerForm" class="auth-form" style="display:none;">
-          <div class="field">
-            <label for="registerEmail">Email</label>
-            <input id="registerEmail" type="email" placeholder="you@email.com" required />
-          </div>
-          <div class="field">
-            <label for="registerPassword">Password</label>
-            <input id="registerPassword" type="password" placeholder="Min. 6 karakter" required />
-          </div>
-          <button type="submit" class="primary full">Create Account</button>
-        </form>
-
-        <div class="auth-divider">atau</div>
-        <button id="googleLogin" class="ghost full">Continue with Google</button>
+    <div class="auth-panel landing-panel">
+      <h1>Photo Picker</h1>
+      <p class="subtitle">Pilih tipe login sesuai peran.</p>
+      <div class="landing-actions">
+        <a href="admin-login.html" class="landing-card">
+          <h3>Admin Login</h3>
+          <p>Untuk Admin Pusat & Admin Cabang.</p>
+        </a>
+        <a href="client-login.html" class="landing-card">
+          <h3>Client Login</h3>
+          <p>Untuk klien yang sudah dibuat oleh admin.</p>
+        </a>
       </div>
     </div>
   </main>
 </body>
-<script type="module">
-  import { initAuthPage } from "./auth.js";
-  initAuthPage();
-</script>
 </html>

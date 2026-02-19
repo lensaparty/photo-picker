@@ -6,6 +6,7 @@ const emptyState = document.getElementById("emptyState");
 const countPill = document.getElementById("countPill");
 const statusFilter = document.getElementById("statusFilter");
 const searchInput = document.getElementById("searchInput");
+const topSearchInput = document.getElementById("topSearchInput");
 const filterJpg = document.getElementById("filterJpg");
 const filterRaw = document.getElementById("filterRaw");
 const selectAllBtn = document.getElementById("selectAllBtn");
@@ -69,6 +70,7 @@ const batchEditBtn = document.getElementById("batchEditBtn");
 const batchAlbumBtn = document.getElementById("batchAlbumBtn");
 const batchClearBtn = document.getElementById("batchClearBtn");
 const showSelectedOnly = document.getElementById("showSelectedOnly");
+const tagFilterButtons = Array.from(document.querySelectorAll(".filter-chip"));
 
 const MODE = document.body.dataset.mode || "vendor";
 document.body.classList.add(`mode-${MODE}`);
@@ -83,6 +85,7 @@ const state = {
   limit: null,
   limitLocked: false,
   folderId: "",
+  tagFilter: "all",
 };
 
 let autosaveTimer = null;
@@ -98,6 +101,13 @@ const PICKED_LABEL = {
 };
 
 const RAW_EXTENSIONS = ["cr2", "cr3", "nef", "arw", "raf", "dng", "orf", "rw2"];
+const TAG_KEYWORDS = {
+  potret: ["portrait", "potret", "closeup", "close-up", "headshot"],
+  landscape: ["landscape", "wide", "panorama", "landskap"],
+  family: ["family", "keluarga", "fam"],
+  pose: ["pose", "gaya", "style"],
+  outfit: ["outfit", "dress", "suit", "baju", "gaun"],
+};
 
 function getExtension(name) {
   return name.split(".").pop()?.toLowerCase() || "";
@@ -112,6 +122,7 @@ function createPhoto(file) {
   const ext = getExtension(file.name);
   const isJpg = ext === "jpg" || ext === "jpeg";
   const isRaw = RAW_EXTENSIONS.includes(ext);
+  const autoTags = inferAutoTags(file.name);
   return {
     id: crypto.randomUUID(),
     name: file.name,
@@ -125,6 +136,7 @@ function createPhoto(file) {
     ext,
     isJpg,
     isRaw,
+    autoTags,
     needsEdit: false,
     forAlbum: false,
   };
@@ -134,6 +146,7 @@ function createPhotoFromDrive(file) {
   const ext = getExtension(file.name);
   const isJpg = ext === "jpg" || ext === "jpeg";
   const isRaw = RAW_EXTENSIONS.includes(ext);
+  const autoTags = inferAutoTags(file.name);
   const thumbUrl = `https://drive.google.com/thumbnail?id=${file.id}&sz=w600`;
   const fullUrl = `https://drive.google.com/thumbnail?id=${file.id}&sz=w1600`;
   return {
@@ -149,9 +162,19 @@ function createPhotoFromDrive(file) {
     ext,
     isJpg,
     isRaw,
+    autoTags,
     needsEdit: false,
     forAlbum: false,
   };
+}
+
+function inferAutoTags(name) {
+  const lower = (name || "").toLowerCase();
+  const tags = [];
+  Object.entries(TAG_KEYWORDS).forEach(([tag, keywords]) => {
+    if (keywords.some((key) => lower.includes(key))) tags.push(tag);
+  });
+  return tags;
 }
 
 function extractFolderId(link) {
@@ -521,6 +544,11 @@ function matchesFilter(photo) {
   if (photo.isJpg && !allowJpg) return false;
   if (photo.isRaw && !allowRaw) return false;
   if (!photo.isJpg && !photo.isRaw) return false;
+  if (state.tagFilter !== "all") {
+    if (!Array.isArray(photo.autoTags) || !photo.autoTags.includes(state.tagFilter)) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -558,6 +586,7 @@ function renderGrid() {
           ${photo.isRaw ? `<span class="badge">RAW</span>` : ""}
           ${photo.needsEdit ? `<span class="badge">Edit</span>` : ""}
           ${photo.forAlbum ? `<span class="badge">Album</span>` : ""}
+          ${(photo.autoTags || []).map((tag) => `<span class="badge">${tag}</span>`).join("")}
         </div>
       </div>
     `;
@@ -687,7 +716,7 @@ loadBtn.addEventListener("click", async () => {
     setActive(state.activeId);
   } catch (error) {
     alert(
-      "Tidak bisa mengambil isi folder. Pastikan link publik, Apps Script sudah di-deploy sebagai Web App (Anyone), dan Netlify Function aktif.\n\nDetail: " +
+      "Tidak bisa mengambil isi folder. Pastikan link publik, Apps Script sudah di-deploy sebagai Web App (Anyone), dan function endpoint aktif.\n\nDetail: " +
         error.message
     );
   } finally {
@@ -703,9 +732,32 @@ if (statusFilter) {
   });
 }
 searchInput.addEventListener("input", () => {
+  if (topSearchInput && topSearchInput.value !== searchInput.value) {
+    topSearchInput.value = searchInput.value;
+  }
   state.page = 1;
   renderGrid();
 });
+if (topSearchInput) {
+  topSearchInput.addEventListener("input", () => {
+    if (searchInput.value !== topSearchInput.value) {
+      searchInput.value = topSearchInput.value;
+    }
+    state.page = 1;
+    renderGrid();
+  });
+}
+if (tagFilterButtons.length) {
+  tagFilterButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.tagFilter = btn.dataset.tagFilter || "all";
+      tagFilterButtons.forEach((chip) => chip.classList.remove("active"));
+      btn.classList.add("active");
+      state.page = 1;
+      renderGrid();
+    });
+  });
+}
 filterJpg.addEventListener("change", () => {
   state.page = 1;
   renderGrid();
@@ -1051,6 +1103,26 @@ if (themeToggle) {
     localStorage.setItem(key, next);
     themeToggle.textContent = next === "dark" ? "Light" : "Dark";
   });
+}
+
+if (isClientMode) {
+  try {
+    const raw = localStorage.getItem("photoPicker.clientProfile");
+    if (raw) {
+      const profile = JSON.parse(raw);
+      if (profile?.driveLink && folderInput && !folderInput.value) {
+        folderInput.value = profile.driveLink;
+      }
+      if (profile?.name) {
+        const info = document.getElementById("limitInfo");
+        if (info && info.textContent.includes("Batas edit belum diatur vendor")) {
+          info.textContent = `Klien: ${profile.name}. Batas edit mengikuti vendor.`;
+        }
+      }
+    }
+  } catch (error) {
+    // ignore malformed local cache
+  }
 }
 
 if (batchEditBtn) {
