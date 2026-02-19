@@ -60,47 +60,56 @@
         </div>
         <button id="loadBtn" class="primary">Ambil Foto</button>
       </div>
-      <div class="input-row vendor-only action-row">
-        <div class="field grow">
-          <label for="pinSetInput">Set PIN Vendor</label>
-          <input id="pinSetInput" type="password" placeholder="Contoh: 1234" />
-        </div>
-        <button id="pinSetBtn" class="ghost">Simpan PIN</button>
-        <button id="pinResetBtn" class="ghost">Reset PIN</button>
-      </div>
       <div class="input-row vendor-only">
         <div id="albumInfo" class="muted">Album: 0 foto (target 34-37).</div>
       </div>
-      <div class="input-row vendor-only action-row">
-        <label class="checkbox">
-          <input id="showSelectedOnly" type="checkbox">
-          Tampilkan hanya yang terpilih
-        </label>
-        <a class="ghost" href="sorter.html" style="text-decoration:none; padding:10px 16px; border-radius:999px; border:1px solid var(--border);">Buka Local Sorter</a>
-      </div>
-      <div class="input-row vendor-only action-row">
-        <div class="field grow">
-          <label for="limitInput">Batas pilihan untuk Edit</label>
-          <input id="limitInput" type="number" min="0" placeholder="Kosongkan untuk tanpa batas edit" />
+
+      <details class="advanced-block vendor-only">
+        <summary>Pengaturan Vendor Lanjutan</summary>
+
+        <div class="input-row action-row">
+          <div class="field grow">
+            <label for="pinSetInput">Set PIN Vendor</label>
+            <input id="pinSetInput" type="password" placeholder="Contoh: 1234" />
+          </div>
+          <button id="pinSetBtn" class="ghost">Simpan PIN</button>
+          <button id="pinResetBtn" class="ghost">Reset PIN</button>
         </div>
-        <label class="checkbox">
-          <input id="limitLock" type="checkbox">
-          Kunci batas
-        </label>
-        <div id="limitInfo" class="muted">Belum ada batas edit.</div>
-      </div>
-      <div class="input-row vendor-only action-row">
-        <button id="copyClientLinkBtn" class="ghost">Copy Link Client (Limit)</button>
-        <span id="limitBadge" class="badge small">Limit: -</span>
-        <span id="limitWarning" class="muted"></span>
-      </div>
-      <div class="input-row vendor-only action-row">
-        <div class="field grow">
-          <label for="importInput">Tempel hasil pilihan client</label>
-          <textarea id="importInput" rows="3" placeholder="Paste hasil copy dari client (nama file)"></textarea>
+
+        <div class="input-row action-row">
+          <label class="checkbox">
+            <input id="showSelectedOnly" type="checkbox">
+            Tampilkan hanya yang terpilih
+          </label>
+          <a class="ghost link-chip" href="sorter.html">Buka Local Sorter</a>
         </div>
-        <button id="importBtn" class="ghost">Terapkan</button>
-      </div>
+
+        <div class="input-row action-row">
+          <div class="field grow">
+            <label for="limitInput">Batas pilihan untuk Edit</label>
+            <input id="limitInput" type="number" min="0" placeholder="Kosongkan untuk tanpa batas edit" />
+          </div>
+          <label class="checkbox">
+            <input id="limitLock" type="checkbox">
+            Kunci batas
+          </label>
+          <div id="limitInfo" class="muted">Belum ada batas edit.</div>
+        </div>
+
+        <div class="input-row action-row">
+          <button id="copyClientLinkBtn" class="ghost">Copy Link Client (Limit)</button>
+          <span id="limitBadge" class="badge small">Limit: -</span>
+          <span id="limitWarning" class="muted"></span>
+        </div>
+
+        <div class="input-row action-row">
+          <div class="field grow">
+            <label for="importInput">Tempel hasil pilihan client</label>
+            <textarea id="importInput" rows="3" placeholder="Paste hasil copy dari client (nama file)"></textarea>
+          </div>
+          <button id="importBtn" class="ghost">Terapkan</button>
+        </div>
+      </details>
 
       <div class="input-row vendor-only">
         <label class="file-btn">
