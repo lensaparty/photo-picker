@@ -44,6 +44,7 @@ const REQUIRE_CLIENT_APPROVAL = false;
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
+const ROLE_RESOLVE_TIMEOUT_MS = 1500;
 
 function normalizeEmail(email) {
   return (email || "").trim().toLowerCase();
@@ -60,6 +61,14 @@ function safeId(value) {
 function setErrorText(el, msg) {
   if (!el) return;
   el.textContent = msg || "";
+}
+
+function withTimeout(promise, ms) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("role_resolve_timeout")), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 function formatAuthError(error) {
@@ -126,13 +135,29 @@ async function resolveContextByUser(user) {
 }
 
 async function handleLoginResult(user, loginMode, authError) {
+  const email = normalizeEmail(user?.email);
+
+  // Fast path untuk client: langsung masuk, validasi detail bisa menyusul di halaman app.
+  if (loginMode === "client" && email && !CENTRAL_ADMIN_EMAILS.has(email)) {
+    persistUserScope({ role: "client", branchId: null });
+    window.location.replace("client.html");
+    return true;
+  }
+
   let context;
   try {
-    context = await resolveContextByUser(user);
+    context = await withTimeout(resolveContextByUser(user), ROLE_RESOLVE_TIMEOUT_MS);
   } catch (error) {
-    await signOut(auth);
-    setErrorText(authError, `Gagal baca role user. ${formatAuthError(error)}`);
-    return false;
+    const fallbackEmail = email;
+    // Fallback cepat: kalau Firestore error saat mode client, tetap izinkan masuk client
+    // agar login tidak mentok saat rules/index belum siap.
+    if (loginMode === "client" && fallbackEmail && !CENTRAL_ADMIN_EMAILS.has(fallbackEmail)) {
+      context = { role: "client", branchId: null };
+    } else {
+      await signOut(auth);
+      setErrorText(authError, `Gagal baca role user. ${formatAuthError(error)}`);
+      return false;
+    }
   }
   if (context.role === "blocked") {
     await signOut(auth);
@@ -172,6 +197,7 @@ function initLoginPage({ mode }) {
   const tabRegister = document.getElementById("tabRegister");
   const forgotPassword = document.getElementById("forgotPassword");
   const allowRegister = mode === "client";
+  let redirecting = false;
 
   function showError(msg) {
     setErrorText(authError, msg);
@@ -204,8 +230,12 @@ function initLoginPage({ mode }) {
     const password = document.getElementById("loginPassword").value;
     try {
       const cred = await signInWithEmailAndPassword(auth, email, password);
-      await handleLoginResult(cred.user, mode, authError);
+      if (!redirecting) {
+        redirecting = true;
+        await handleLoginResult(cred.user, mode, authError);
+      }
     } catch (error) {
+      redirecting = false;
       showError(formatAuthError(error));
     }
   });
@@ -217,8 +247,12 @@ function initLoginPage({ mode }) {
     const password = document.getElementById("registerPassword").value;
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, password);
-      await handleLoginResult(cred.user, mode, authError);
+      if (!redirecting) {
+        redirecting = true;
+        await handleLoginResult(cred.user, mode, authError);
+      }
     } catch (error) {
+      redirecting = false;
       showError(formatAuthError(error));
     }
   });
@@ -228,8 +262,12 @@ function initLoginPage({ mode }) {
     try {
       const provider = new GoogleAuthProvider();
       const cred = await signInWithPopup(auth, provider);
-      await handleLoginResult(cred.user, mode, authError);
+      if (!redirecting) {
+        redirecting = true;
+        await handleLoginResult(cred.user, mode, authError);
+      }
     } catch (error) {
+      redirecting = false;
       showError(formatAuthError(error));
     }
   });
@@ -252,8 +290,12 @@ function initLoginPage({ mode }) {
   onAuthStateChanged(auth, async (user) => {
     if (!user) return;
     try {
-      await handleLoginResult(user, mode, authError);
+      if (!redirecting) {
+        redirecting = true;
+        await handleLoginResult(user, mode, authError);
+      }
     } catch (error) {
+      redirecting = false;
       showError(formatAuthError(error));
     }
   });
@@ -360,9 +402,9 @@ export async function listClientsForScope(scope) {
 export async function guardPage(requiredRole) {
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
-    logoutBtn.addEventListener("click", async () => {
-      await signOut(auth);
+    logoutBtn.addEventListener("click", () => {
       window.location.replace("index.html");
+      signOut(auth).catch(() => {});
     });
   }
 
