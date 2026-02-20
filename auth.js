@@ -45,6 +45,7 @@ const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 const ROLE_RESOLVE_TIMEOUT_MS = 1500;
+const LOGOUT_FLAG_KEY = "photoPicker.forceLogout";
 
 function normalizeEmail(email) {
   return (email || "").trim().toLowerCase();
@@ -95,6 +96,23 @@ function persistUserScope({ role, branchId }) {
     localStorage.setItem("photoPicker.userBranch", branchId);
   } else {
     localStorage.removeItem("photoPicker.userBranch");
+  }
+}
+
+function clearUserScope() {
+  localStorage.removeItem("photoPicker.userRole");
+  localStorage.removeItem("photoPicker.userBranch");
+  localStorage.removeItem("photoPicker.clientProfile");
+}
+
+async function signOutQuickly() {
+  try {
+    await Promise.race([
+      signOut(auth),
+      new Promise((resolve) => setTimeout(resolve, 1200)),
+    ]);
+  } catch (_) {
+    // ignore: redirect tetap harus jalan cepat
   }
 }
 
@@ -288,6 +306,11 @@ function initLoginPage({ mode }) {
   });
 
   onAuthStateChanged(auth, async (user) => {
+    if (sessionStorage.getItem(LOGOUT_FLAG_KEY) === "1") {
+      sessionStorage.removeItem(LOGOUT_FLAG_KEY);
+      await signOutQuickly();
+      return;
+    }
     if (!user) return;
     try {
       if (!redirecting) {
@@ -402,9 +425,12 @@ export async function listClientsForScope(scope) {
 export async function guardPage(requiredRole) {
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
-    logoutBtn.addEventListener("click", () => {
+    logoutBtn.addEventListener("click", async () => {
+      logoutBtn.disabled = true;
+      sessionStorage.setItem(LOGOUT_FLAG_KEY, "1");
+      clearUserScope();
+      await signOutQuickly();
       window.location.replace("index.html");
-      signOut(auth).catch(() => {});
     });
   }
 
