@@ -10,37 +10,48 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="auth-hero">
-    <div class="auth-card">
-      <div class="auth-left">
-        <div class="auth-logo">LP</div>
-        <h2>Admin Portal</h2>
-        <p class="subtitle">Login khusus untuk Admin Pusat & Admin Cabang.</p>
-      </div>
-      <div class="auth-right">
+  <main class="auth-modern">
+    <section class="auth-modern-card">
+      <div class="auth-modern-form">
+        <div class="auth-brand">Lensaparty</div>
+        <h2>Admin Login</h2>
+        <p class="subtitle">Untuk Admin Pusat & Admin Cabang.</p>
+
+        <button id="googleLogin" class="ghost full">Log In with Google</button>
+        <div class="auth-divider">atau login dengan email</div>
+
         <div class="auth-tabs">
           <button id="tabLogin" class="ghost active">Log In</button>
           <button id="tabRegister" class="ghost">Create Account</button>
         </div>
         <div id="authError" class="muted" style="margin-bottom:8px;"></div>
+
         <form id="loginForm" class="auth-form">
           <div class="field">
-            <label for="loginEmail">Email</label>
+            <label for="loginEmail">Email address</label>
             <input id="loginEmail" type="email" placeholder="admin@email.com" required />
           </div>
           <div class="field">
             <label for="loginPassword">Password</label>
-            <input id="loginPassword" type="password" placeholder="••••••••" required />
+            <input id="loginPassword" type="password" placeholder="Min. 8 Characters" required />
+          </div>
+          <div class="auth-inline">
+            <span class="muted">Admin only</span>
             <button id="forgotPassword" type="button" class="link-btn">Forgot password?</button>
           </div>
           <button type="submit" class="primary full">Log In</button>
         </form>
+
         <form id="registerForm" class="auth-form" style="display:none;"></form>
-        <div class="auth-divider">atau</div>
-        <button id="googleLogin" class="ghost full">Continue with Google</button>
-        <a href="client-login.html" class="link-btn" style="align-self:center;">Masuk sebagai Client</a>
+        <a href="client-login.html" class="link-btn" style="align-self:flex-start;">Masuk sebagai Client</a>
       </div>
-    </div>
+
+      <div class="auth-modern-visual">
+        <div class="auth-visual-content">
+          <p>Vendor workspace untuk kurasi, locking, dan distribusi hasil pilih client.</p>
+        </div>
+      </div>
+    </section>
   </main>
   <script type="module">
     import { initAdminAuthPage } from "./auth.js";

@@ -1,3 +1,5 @@
+import { loadSelectionState, saveSelectionState } from "./auth.js";
+
 const fileInput = document.getElementById("fileInput");
 const folderInput = document.getElementById("folderInput");
 const loadBtn = document.getElementById("loadBtn");
@@ -39,8 +41,6 @@ const downloadExport = document.getElementById("downloadExport");
 const limitInput = document.getElementById("limitInput");
 const limitLock = document.getElementById("limitLock");
 const limitInfo = document.getElementById("limitInfo");
-const importInput = document.getElementById("importInput");
-const importBtn = document.getElementById("importBtn");
 const copyClientLinkBtn = document.getElementById("copyClientLinkBtn");
 const limitBadge = document.getElementById("limitBadge");
 const limitWarning = document.getElementById("limitWarning");
@@ -57,20 +57,29 @@ const progressEdit = document.getElementById("progressEdit");
 const progressAlbum = document.getElementById("progressAlbum");
 const welcomeModal = document.getElementById("welcomeModal");
 const welcomeClose = document.getElementById("welcomeClose");
-const pinModal = document.getElementById("pinModal");
-const pinInput = document.getElementById("pinInput");
-const pinSubmit = document.getElementById("pinSubmit");
-const pinHelp = document.getElementById("pinHelp");
-const pinMessage = document.getElementById("pinMessage");
-const pinSetInput = document.getElementById("pinSetInput");
-const pinSetBtn = document.getElementById("pinSetBtn");
-const pinResetBtn = document.getElementById("pinResetBtn");
 const themeToggle = document.getElementById("themeToggle");
 const batchEditBtn = document.getElementById("batchEditBtn");
 const batchAlbumBtn = document.getElementById("batchAlbumBtn");
 const batchClearBtn = document.getElementById("batchClearBtn");
-const showSelectedOnly = document.getElementById("showSelectedOnly");
 const tagFilterButtons = Array.from(document.querySelectorAll(".filter-chip"));
+const browseTabs = Array.from(document.querySelectorAll(".browse-tab"));
+const workflowFilterButtons = Array.from(document.querySelectorAll(".workflow-filter .wf-chip"));
+const workflowSetButtons = Array.from(document.querySelectorAll(".workflow-set .wf-chip"));
+const wfTodoCount = document.getElementById("wfTodoCount");
+const wfProgressCount = document.getElementById("wfProgressCount");
+const wfDoneCount = document.getElementById("wfDoneCount");
+const sideUserName = document.getElementById("sideUserName");
+const vendorSettingsModal = document.getElementById("vendorSettingsModal");
+const openVendorSettings = document.getElementById("openVendorSettings");
+const closeVendorSettings = document.getElementById("closeVendorSettings");
+const openSettingsBtn = document.getElementById("openSettingsBtn");
+const navVendorDashboard = document.getElementById("navVendorDashboard");
+const navVendorPicker = document.getElementById("navVendorPicker");
+const gotoPickerBtn = document.getElementById("gotoPickerBtn");
+const vendorMainLayout = document.getElementById("vendorMainLayout");
+const pickerPanel = document.getElementById("pickerPanel");
+const monitorPanel = document.getElementById("monitorPanel");
+const dashboardQuickPanel = document.getElementById("dashboardQuickPanel");
 
 const MODE = document.body.dataset.mode || "vendor";
 document.body.classList.add(`mode-${MODE}`);
@@ -86,9 +95,11 @@ const state = {
   limitLocked: false,
   folderId: "",
   tagFilter: "all",
+  workflowFilter: "all",
 };
 
 let autosaveTimer = null;
+let remoteSaveTimer = null;
 
 const DRIVE_ENDPOINT =
   "https://script.google.com/macros/s/AKfycbyGxjzwUcW-KxKm0M5pbR1kpkViqyzBWL76T4PRzppHX5ntF5BtpRyII8T3GZlK2ulplA/exec";
@@ -108,6 +119,20 @@ const TAG_KEYWORDS = {
   pose: ["pose", "gaya", "style"],
   outfit: ["outfit", "dress", "suit", "baju", "gaun"],
 };
+let metadataRenderTimer = null;
+
+function hydrateSidebarUser() {
+  if (!sideUserName) return;
+  const display = (localStorage.getItem("photoPicker.userDisplay") || "").trim();
+  if (display) {
+    sideUserName.textContent = display;
+    return;
+  }
+  const email = (localStorage.getItem("photoPicker.userEmail") || "").trim();
+  if (!email) return;
+  const name = email.split("@")[0] || email;
+  sideUserName.textContent = name;
+}
 
 function getExtension(name) {
   return name.split(".").pop()?.toLowerCase() || "";
@@ -137,6 +162,7 @@ function createPhoto(file) {
     isJpg,
     isRaw,
     autoTags,
+    workflow: "todo",
     needsEdit: false,
     forAlbum: false,
   };
@@ -147,8 +173,8 @@ function createPhotoFromDrive(file) {
   const isJpg = ext === "jpg" || ext === "jpeg";
   const isRaw = RAW_EXTENSIONS.includes(ext);
   const autoTags = inferAutoTags(file.name);
-  const thumbUrl = `https://drive.google.com/thumbnail?id=${file.id}&sz=w600`;
-  const fullUrl = `https://drive.google.com/thumbnail?id=${file.id}&sz=w1600`;
+  const thumbUrl = `https://drive.google.com/thumbnail?id=${file.id}&sz=w320`;
+  const fullUrl = `https://drive.google.com/thumbnail?id=${file.id}&sz=w1200`;
   return {
     id: file.id,
     name: file.name,
@@ -163,6 +189,7 @@ function createPhotoFromDrive(file) {
     isJpg,
     isRaw,
     autoTags,
+    workflow: "todo",
     needsEdit: false,
     forAlbum: false,
   };
@@ -175,6 +202,49 @@ function inferAutoTags(name) {
     if (keywords.some((key) => lower.includes(key))) tags.push(tag);
   });
   return tags;
+}
+
+function queueMetadataRender() {
+  if (metadataRenderTimer) return;
+  metadataRenderTimer = setTimeout(() => {
+    metadataRenderTimer = null;
+    renderGrid();
+    if (state.activeId) setActive(state.activeId);
+  }, 120);
+}
+
+function upsertOrientationTag(photo, ratio) {
+  const currentTags = Array.isArray(photo.autoTags) ? photo.autoTags : [];
+  const clean = currentTags.filter((tag) => tag !== "potret" && tag !== "landscape");
+  if (ratio >= 1.08) clean.push("landscape");
+  else if (ratio <= 0.92) clean.push("potret");
+  return Array.from(new Set(clean));
+}
+
+function hydratePhotoOrientation(photo) {
+  if (!photo?.isJpg || !photo?.url) return;
+  const img = new Image();
+  img.referrerPolicy = "no-referrer";
+  img.onload = () => {
+    const ratio = (img.naturalWidth || 1) / (img.naturalHeight || 1);
+    const current = state.photos.find((p) => p.id === photo.id);
+    if (!current) return;
+    const nextTags = upsertOrientationTag(current, ratio);
+    const same = JSON.stringify(nextTags) === JSON.stringify(current.autoTags || []);
+    if (same) return;
+    current.autoTags = nextTags;
+    queueMetadataRender();
+  };
+  img.onerror = () => {};
+  img.src = photo.thumbUrl || photo.url;
+}
+
+function hydratePhotosOrientation(list) {
+  // Batasi agar tidak spawn request orientasi terlalu banyak sekaligus.
+  list
+    .filter((photo) => photo.isJpg)
+    .slice(0, 12)
+    .forEach((photo) => hydratePhotoOrientation(photo));
 }
 
 function extractFolderId(link) {
@@ -196,6 +266,7 @@ function updateCount() {
   updateLimitInfo();
   updateAlbumInfo();
   updateCounters();
+  updateWorkflowSummary();
 }
 
 function getActivePhoto() {
@@ -220,7 +291,7 @@ function scheduleAutosave() {
   autosaveTimer = setTimeout(saveStateForFolder, 300);
 }
 
-function saveStateForFolder() {
+async function saveStateForFolder() {
   if (!state.folderId) return;
   const payload = {
     selected: Array.from(state.selected),
@@ -233,16 +304,23 @@ function saveStateForFolder() {
       needsEdit: photo.needsEdit,
       forAlbum: photo.forAlbum,
       locked: photo.locked,
+      workflow: photo.workflow || "todo",
     })),
   };
   localStorage.setItem(getStateKey(state.folderId), JSON.stringify(payload));
+  if (remoteSaveTimer) clearTimeout(remoteSaveTimer);
+  remoteSaveTimer = setTimeout(async () => {
+    try {
+      await saveSelectionState(state.folderId, MODE, payload);
+    } catch (error) {
+      // keep local as fallback
+    }
+  }, 250);
 }
 
-function restoreStateForFolder(folderId) {
-  const raw = localStorage.getItem(getStateKey(folderId));
-  if (!raw) return;
+function applySavedPayload(payload) {
+  if (!payload) return;
   try {
-    const payload = JSON.parse(raw);
     if (payload.selected) {
       state.selected = new Set(payload.selected);
     }
@@ -260,11 +338,32 @@ function restoreStateForFolder(folderId) {
           needsEdit: !!saved.needsEdit,
           forAlbum: !!saved.forAlbum,
           locked: !!saved.locked,
+          workflow: saved.workflow || photo.workflow || "todo",
         };
       });
     }
   } catch (error) {
-    localStorage.removeItem(getStateKey(folderId));
+    // ignore invalid payload
+  }
+}
+
+async function restoreStateForFolder(folderId) {
+  const raw = localStorage.getItem(getStateKey(folderId));
+  if (raw) {
+    try {
+      applySavedPayload(JSON.parse(raw));
+    } catch (error) {
+      localStorage.removeItem(getStateKey(folderId));
+    }
+  }
+  try {
+    const remote = await loadSelectionState(folderId, MODE);
+    if (remote) {
+      applySavedPayload(remote);
+      localStorage.setItem(getStateKey(folderId), JSON.stringify(remote));
+    }
+  } catch (error) {
+    // ignore remote issue, local fallback already applied
   }
 }
 
@@ -526,10 +625,19 @@ function applyBatchTags({ edit, album }) {
   scheduleAutosave();
 }
 
+function updateWorkflowSummary() {
+  if (!wfTodoCount && !wfProgressCount && !wfDoneCount) return;
+  const selectedPhotos = state.photos.filter((photo) => state.selected.has(photo.id));
+  const src = selectedPhotos.length ? selectedPhotos : state.photos;
+  const todo = src.filter((p) => (p.workflow || "todo") === "todo").length;
+  const progress = src.filter((p) => (p.workflow || "todo") === "progress").length;
+  const done = src.filter((p) => (p.workflow || "todo") === "done").length;
+  if (wfTodoCount) wfTodoCount.textContent = String(todo);
+  if (wfProgressCount) wfProgressCount.textContent = String(progress);
+  if (wfDoneCount) wfDoneCount.textContent = String(done);
+}
+
 function matchesFilter(photo) {
-  if (!isClientMode && showSelectedOnly?.checked && !state.selected.has(photo.id)) {
-    return false;
-  }
   if (!isClientMode) {
     const filter = statusFilter.value;
     if (filter === "fg" && photo.pickedBy !== "fg") return false;
@@ -549,11 +657,15 @@ function matchesFilter(photo) {
       return false;
     }
   }
+  if (state.workflowFilter !== "all" && (photo.workflow || "todo") !== state.workflowFilter) {
+    return false;
+  }
   return true;
 }
 
 function renderGrid() {
   grid.innerHTML = "";
+  grid.classList.add("visual-first-grid");
   const visible = state.photos.filter(matchesFilter);
 
   emptyState.style.display = state.photos.length === 0 ? "block" : "none";
@@ -569,24 +681,38 @@ function renderGrid() {
   pageItems.forEach((photo) => {
     const card = document.createElement("div");
     card.className = "card";
+    const hasPortraitTag = (photo.autoTags || []).includes("potret");
+    const hasLandscapeTag = (photo.autoTags || []).includes("landscape");
+    if (hasPortraitTag) card.classList.add("portrait");
+    if (hasLandscapeTag) card.classList.add("landscape");
+    if (!hasPortraitTag && !hasLandscapeTag) card.classList.add("square");
     if (state.selected.has(photo.id)) card.classList.add("selected");
 
     const thumbHtml = photo.isJpg
-      ? `<img src="${photo.thumbUrl || photo.url}" alt="${photo.name}" referrerpolicy="no-referrer">`
+      ? `<img src="${photo.thumbUrl || photo.url}" alt="${photo.name}" loading="lazy" decoding="async" referrerpolicy="no-referrer">`
       : `<div class="thumb-placeholder">RAW</div>`;
+    const compactBadges = [];
+    compactBadges.push(PICKED_LABEL[photo.pickedBy]);
+    const workflowLabel =
+      (photo.workflow || "todo") === "done"
+        ? "Done"
+        : (photo.workflow || "todo") === "progress"
+          ? "On Progress"
+          : "To Do";
+    compactBadges.push(workflowLabel);
+    if (photo.forAlbum) compactBadges.push("Album");
+    else if (photo.needsEdit) compactBadges.push("Edit");
+    else if (photo.edited) compactBadges.push("Edited");
+    if (photo.isRaw) compactBadges.push("RAW");
+    const autoTag = (photo.autoTags || [])[0];
+    if (autoTag) compactBadges.push(autoTag);
     card.innerHTML = `
       ${thumbHtml}
       <div class="meta">
         <strong>${photo.name}</strong>
         <div class="badges">
-          <span class="badge">${PICKED_LABEL[photo.pickedBy]}</span>
-          ${photo.edited ? `<span class="badge">Edited</span>` : ""}
-          ${photo.caption ? `<span class="badge">Caption</span>` : ""}
+          ${compactBadges.slice(0, 3).map((tag) => `<span class="badge">${tag}</span>`).join("")}
           ${photo.locked ? `<span class="badge">Locked</span>` : ""}
-          ${photo.isRaw ? `<span class="badge">RAW</span>` : ""}
-          ${photo.needsEdit ? `<span class="badge">Edit</span>` : ""}
-          ${photo.forAlbum ? `<span class="badge">Album</span>` : ""}
-          ${(photo.autoTags || []).map((tag) => `<span class="badge">${tag}</span>`).join("")}
         </div>
       </div>
     `;
@@ -605,6 +731,7 @@ function renderGrid() {
 
     grid.appendChild(card);
   });
+  updateWorkflowSummary();
 }
 
 function resetAll() {
@@ -637,6 +764,7 @@ fileInput.addEventListener("change", (event) => {
   renderGrid();
   updateCount();
   setActive(state.activeId);
+  hydratePhotosOrientation(photos);
   fileInput.value = "";
 });
 
@@ -690,12 +818,8 @@ async function loadDriveData(folderId) {
   return loadFromDriveFunction(folderId);
 }
 
-loadBtn.addEventListener("click", async () => {
-  const folderId = extractFolderId(folderInput.value.trim());
-  if (!folderId) {
-    alert("Link folder Google Drive tidak valid.");
-    return;
-  }
+async function loadFromFolderId(folderId) {
+  if (!folderId) return false;
 
   loadBtn.disabled = true;
   loadBtn.textContent = "Memuat...";
@@ -709,20 +833,32 @@ loadBtn.addEventListener("click", async () => {
     state.activeId = photos[0]?.id || null;
     state.folderId = folderId;
     loadLimitForFolder(folderId);
-    restoreStateForFolder(folderId);
+    await restoreStateForFolder(folderId);
     state.page = 1;
     renderGrid();
     updateCount();
     setActive(state.activeId);
+    hydratePhotosOrientation(photos);
+    return true;
   } catch (error) {
     alert(
       "Tidak bisa mengambil isi folder. Pastikan link publik, Apps Script sudah di-deploy sebagai Web App (Anyone), dan function endpoint aktif.\n\nDetail: " +
         error.message
     );
+    return false;
   } finally {
     loadBtn.disabled = false;
     loadBtn.textContent = "Ambil Foto";
   }
+}
+
+loadBtn.addEventListener("click", async () => {
+  const folderId = extractFolderId(folderInput.value.trim());
+  if (!folderId) {
+    alert("Link folder Google Drive tidak valid.");
+    return;
+  }
+  await loadFromFolderId(folderId);
 });
 
 if (statusFilter) {
@@ -753,8 +889,69 @@ if (tagFilterButtons.length) {
       state.tagFilter = btn.dataset.tagFilter || "all";
       tagFilterButtons.forEach((chip) => chip.classList.remove("active"));
       btn.classList.add("active");
+      const label = state.tagFilter === "all" ? "unggulan" : state.tagFilter;
+      browseTabs.forEach((tab) => {
+        const isActive = (tab.textContent || "").trim().toLowerCase() === label;
+        tab.classList.toggle("active", isActive);
+      });
       state.page = 1;
       renderGrid();
+    });
+  });
+}
+
+if (browseTabs.length) {
+  browseTabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const key = (tab.textContent || "").trim().toLowerCase();
+      const map = {
+        unggulan: "all",
+        potret: "potret",
+        landscape: "landscape",
+        family: "family",
+        pose: "pose",
+        outfit: "outfit",
+      };
+      const target = map[key] || "all";
+      state.tagFilter = target;
+      browseTabs.forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      tagFilterButtons.forEach((chip) => {
+        chip.classList.toggle("active", (chip.dataset.tagFilter || "all") === target);
+      });
+      render();
+    });
+  });
+}
+if (workflowFilterButtons.length) {
+  workflowFilterButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.workflowFilter = btn.dataset.workflowFilter || "all";
+      workflowFilterButtons.forEach((chip) => chip.classList.remove("active"));
+      btn.classList.add("active");
+      state.page = 1;
+      renderGrid();
+    });
+  });
+}
+
+if (workflowSetButtons.length) {
+  workflowSetButtons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (state.selected.size === 0) {
+        alert("Pilih foto dulu.");
+        return;
+      }
+      const workflow = btn.dataset.workflowSet || "todo";
+      state.photos = state.photos.map((photo) => {
+        if (!state.selected.has(photo.id) || photo.locked) return photo;
+        return { ...photo, workflow };
+      });
+      workflowSetButtons.forEach((chip) => chip.classList.remove("active"));
+      btn.classList.add("active");
+      renderGrid();
+      setActive(state.activeId);
+      scheduleAutosave();
     });
   });
 }
@@ -990,17 +1187,7 @@ function applyClientSelection(text) {
   scheduleAutosave();
 }
 
-if (importBtn) {
-  importBtn.addEventListener("click", () => {
-    applyClientSelection(importInput.value);
-    if (showSelectedOnly) {
-      showSelectedOnly.checked = true;
-      state.page = 1;
-      renderGrid();
-    }
-  });
-}
-
+hydrateSidebarUser();
 renderGrid();
 setActive(null);
 updateCount();
@@ -1008,86 +1195,6 @@ updateCount();
 if (welcomeModal && welcomeClose) {
   welcomeClose.addEventListener("click", () => {
     welcomeModal.classList.add("hidden");
-  });
-}
-
-function getPinKey() {
-  return "photoPicker.vendorPin";
-}
-
-function requireVendorPin() {
-  if (isClientMode || !pinModal) return;
-  const params = new URLSearchParams(window.location.search);
-  const urlPin = params.get("pin");
-  const storedPin = localStorage.getItem(getPinKey());
-
-  if (urlPin) {
-    localStorage.setItem(getPinKey(), urlPin);
-    return;
-  }
-
-  if (!storedPin) {
-    return;
-  }
-
-  pinModal.classList.remove("hidden");
-  if (pinMessage && storedPin) {
-    pinMessage.textContent = "";
-  }
-}
-
-requireVendorPin();
-
-if (pinSubmit) {
-  pinSubmit.addEventListener("click", () => {
-    const storedPin = localStorage.getItem(getPinKey());
-    if (!storedPin) {
-      if (pinMessage) {
-        pinMessage.textContent =
-          "Belum ada PIN. Tambahkan ?pin=1234 sekali di URL vendor untuk set PIN.";
-      }
-      return;
-    }
-    if (pinInput.value === storedPin) {
-      pinModal.classList.add("hidden");
-      pinInput.value = "";
-      if (pinMessage) pinMessage.textContent = "";
-      return;
-    }
-    if (pinMessage) pinMessage.textContent = "PIN salah. Coba lagi.";
-  });
-}
-
-if (pinHelp) {
-  pinHelp.addEventListener("click", () => {
-    if (pinMessage) {
-      pinMessage.textContent =
-        "Cara set PIN: buka vendor.html?pin=1234 lalu refresh. PIN akan tersimpan di browser.";
-    }
-  });
-}
-
-if (pinSetBtn && pinSetInput) {
-  pinSetBtn.addEventListener("click", () => {
-    const value = pinSetInput.value.trim();
-    if (!value) {
-      alert("Masukkan PIN terlebih dahulu.");
-      return;
-    }
-    localStorage.setItem(getPinKey(), value);
-    pinSetInput.value = "";
-    alert("PIN vendor berhasil disimpan.");
-  });
-}
-
-if (pinResetBtn) {
-  pinResetBtn.addEventListener("click", () => {
-    const ok = confirm(
-      "Reset PIN? Jika lupa, kamu bisa reset dan set ulang PIN."
-    );
-    if (!ok) return;
-    localStorage.removeItem(getPinKey());
-    alert("PIN vendor berhasil di-reset. Set PIN baru jika perlu.");
   });
 }
 
@@ -1112,12 +1219,19 @@ if (isClientMode) {
       const profile = JSON.parse(raw);
       if (profile?.driveLink && folderInput && !folderInput.value) {
         folderInput.value = profile.driveLink;
+        const folderId = extractFolderId(profile.driveLink);
+        if (folderId) {
+          loadFromFolderId(folderId);
+        }
       }
       if (profile?.name) {
         const info = document.getElementById("limitInfo");
         if (info && info.textContent.includes("Batas edit belum diatur vendor")) {
           info.textContent = `Klien: ${profile.name}. Batas edit mengikuti vendor.`;
         }
+      }
+      if (profile?.weddingDate && albumInfo) {
+        albumInfo.textContent = `Album: 0 foto (target 34-37). Tanggal pernikahan: ${profile.weddingDate}`;
       }
     }
   } catch (error) {
@@ -1164,9 +1278,35 @@ if (albumPickToggle) {
   });
 }
 
-if (showSelectedOnly) {
-  showSelectedOnly.addEventListener("change", () => {
-    state.page = 1;
-    renderGrid();
+if (vendorSettingsModal) {
+  const openSettings = () => vendorSettingsModal.classList.remove("hidden");
+  const closeSettings = () => vendorSettingsModal.classList.add("hidden");
+  openVendorSettings?.addEventListener("click", openSettings);
+  openSettingsBtn?.addEventListener("click", openSettings);
+  closeVendorSettings?.addEventListener("click", closeSettings);
+  vendorSettingsModal.addEventListener("click", (event) => {
+    if (event.target === vendorSettingsModal) {
+      closeSettings();
+    }
   });
+}
+
+function setVendorView(view) {
+  if (isClientMode || !vendorMainLayout || !pickerPanel || !monitorPanel || !dashboardQuickPanel) return;
+  const isDashboard = view !== "picker";
+  pickerPanel.style.display = isDashboard ? "none" : "";
+  monitorPanel.style.display = isDashboard ? "" : "none";
+  dashboardQuickPanel.style.display = isDashboard ? "" : "none";
+  vendorMainLayout.classList.toggle("single-col", !isDashboard);
+  navVendorDashboard?.classList.toggle("active", isDashboard);
+  navVendorPicker?.classList.toggle("active", !isDashboard);
+  localStorage.setItem("photoPicker.vendorView", isDashboard ? "dashboard" : "picker");
+}
+
+if (!isClientMode && navVendorDashboard && navVendorPicker) {
+  navVendorDashboard.addEventListener("click", () => setVendorView("dashboard"));
+  navVendorPicker.addEventListener("click", () => setVendorView("picker"));
+  gotoPickerBtn?.addEventListener("click", () => setVendorView("picker"));
+  const savedView = localStorage.getItem("photoPicker.vendorView") || "dashboard";
+  setVendorView(savedView);
 }

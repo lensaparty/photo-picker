@@ -10,47 +10,39 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main class="auth-hero">
-    <div class="auth-card">
-      <div class="auth-left">
-        <div class="auth-logo">LP</div>
-        <h2>Client Portal</h2>
-        <p class="subtitle">Login klien untuk memilih foto sesuai paket.</p>
-      </div>
-      <div class="auth-right">
+  <main class="auth-modern">
+    <section class="auth-modern-card">
+      <div class="auth-modern-form">
+        <div class="auth-brand">Lensaparty</div>
+        <h2>Welcome Back</h2>
+        <p class="subtitle">Login client untuk pilih foto.</p>
+
         <div class="auth-tabs">
           <button id="tabLogin" class="ghost active">Log In</button>
-          <button id="tabRegister" class="ghost">Create Account</button>
         </div>
         <div id="authError" class="muted" style="margin-bottom:8px;"></div>
+
         <form id="loginForm" class="auth-form">
           <div class="field">
-            <label for="loginEmail">Email</label>
-            <input id="loginEmail" type="email" placeholder="you@email.com" required />
+            <label for="loginEmail">Kode Client</label>
+            <input id="loginEmail" type="text" placeholder="misal: fidaferdi2402" required />
           </div>
-          <div class="field">
-            <label for="loginPassword">Password</label>
-            <input id="loginPassword" type="password" placeholder="••••••••" required />
-            <button id="forgotPassword" type="button" class="link-btn">Forgot password?</button>
+          <div class="auth-inline">
+            <span class="muted">Client portal</span>
+            <span class="muted">Hubungi vendor jika lupa kode</span>
           </div>
           <button type="submit" class="primary full">Log In</button>
         </form>
-        <form id="registerForm" class="auth-form" style="display:none;">
-          <div class="field">
-            <label for="registerEmail">Email</label>
-            <input id="registerEmail" type="email" placeholder="you@email.com" required />
-          </div>
-          <div class="field">
-            <label for="registerPassword">Password</label>
-            <input id="registerPassword" type="password" placeholder="Min. 6 karakter" required />
-          </div>
-          <button type="submit" class="primary full">Create Account</button>
-        </form>
-        <div class="auth-divider">atau</div>
-        <button id="googleLogin" class="ghost full">Continue with Google</button>
-        <a href="admin-login.html" class="link-btn" style="align-self:center;">Masuk sebagai Admin</a>
+
+        <a href="admin-login.html" class="link-btn" style="align-self:flex-start;">Masuk sebagai Admin</a>
       </div>
-    </div>
+
+      <div class="auth-modern-visual">
+        <div class="auth-visual-content">
+          <p>Visual-first picker untuk kurasi foto wedding lebih cepat dan rapi.</p>
+        </div>
+      </div>
+    </section>
   </main>
   <script type="module">
     import { initClientAuthPage } from "./auth.js";

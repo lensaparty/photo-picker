@@ -12,33 +12,39 @@
 <body data-mode="vendor" class="mode-vendor">
   <div class="app-shell">
     <aside class="side-rail">
-      <div class="side-brand">Lensaparty</div>
+      <div class="side-logo">LP</div>
+      <div class="side-user" id="sideUserName">Admin</div>
       <div class="side-sub">Vendor Dashboard</div>
       <nav class="side-nav">
-        <button class="side-item active" type="button">Photo Picker</button>
-        <button class="side-item" type="button" onclick="location.href='sorter.html'">Local Sorter</button>
-        <button class="side-item" type="button" onclick="location.href='client.html'">Client View</button>
+        <button id="navVendorDashboard" class="side-item active" type="button"><span class="side-icon">D</span>Dashboard</button>
+        <button id="navVendorPicker" class="side-item" type="button"><span class="side-icon">K</span>Kurasi Foto</button>
+        <button id="openVendorSettings" class="side-item" type="button"><span class="side-icon">P</span>Pengaturan</button>
+        <button class="side-item" type="button" onclick="location.href='sorter.html'"><span class="side-icon">L</span>Local Sorter</button>
+        <button class="side-item" type="button" onclick="location.href='client.html'"><span class="side-icon">C</span>Client View</button>
       </nav>
     </aside>
 
     <div class="workspace">
-      <header class="topbar">
-        <div>
-          <h1>Photo Picker</h1>
-          <p class="subtitle vendor-only">Mode Vendor/FG: siapkan foto, kunci, dan kirim ke klien.</p>
-          <p class="subtitle client-only">Mode Client: pilih foto dan kirim hasil ke vendor.</p>
-        </div>
+      <header class="topbar topbar-minimal">
         <div class="top-actions">
           <input id="topSearchInput" class="top-search" placeholder="Cari nama foto..." />
           <button id="themeToggle" class="ghost">Dark</button>
-          <button id="logoutBtn" class="ghost">Masuk</button>
-          <button id="exportBtn" class="ghost">Dapatkan Unsplash+</button>
-          <button id="clearBtn" class="danger">Kirim gambar</button>
+          <button id="logoutBtn" class="ghost">Logout</button>
+          <button id="exportBtn" class="ghost">Export Terpilih</button>
+          <button id="clearBtn" class="danger">Reset</button>
         </div>
       </header>
+      <nav class="browse-tabs" aria-label="Kategori visual">
+        <button class="browse-tab active" type="button">Unggulan</button>
+        <button class="browse-tab" type="button">Potret</button>
+        <button class="browse-tab" type="button">Landscape</button>
+        <button class="browse-tab" type="button">Family</button>
+        <button class="browse-tab" type="button">Pose</button>
+        <button class="browse-tab" type="button">Outfit</button>
+      </nav>
 
-      <main class="layout">
-    <section class="panel">
+      <main id="vendorMainLayout" class="layout">
+    <section id="pickerPanel" class="panel">
       <div class="panel-header">
         <h2>Input & Filter</h2>
         <div class="counter-stack">
@@ -66,6 +72,19 @@
         </div>
       </div>
 
+      <div class="workflow-strip">
+        <div class="wf-col"><span>To Do</span><strong id="wfTodoCount">0</strong></div>
+        <div class="wf-col"><span>On Progress</span><strong id="wfProgressCount">0</strong></div>
+        <div class="wf-col"><span>Done</span><strong id="wfDoneCount">0</strong></div>
+      </div>
+
+      <div class="workflow-filter">
+        <button type="button" class="wf-chip active" data-workflow-filter="all">Semua</button>
+        <button type="button" class="wf-chip" data-workflow-filter="todo">To Do</button>
+        <button type="button" class="wf-chip" data-workflow-filter="progress">On Progress</button>
+        <button type="button" class="wf-chip" data-workflow-filter="done">Done</button>
+      </div>
+
       <div class="input-row">
         <div class="field grow">
           <label for="folderInput">Link Folder Google Drive (publik)</label>
@@ -76,107 +95,6 @@
       <div class="input-row vendor-only">
         <div id="albumInfo" class="muted">Album: 0 foto (target 34-37).</div>
       </div>
-
-      <details class="advanced-block vendor-only">
-        <summary>Pengaturan Vendor Lanjutan</summary>
-
-        <div class="input-row action-row">
-          <div class="field grow">
-            <label for="pinSetInput">Set PIN Vendor</label>
-            <input id="pinSetInput" type="password" placeholder="Contoh: 1234" />
-          </div>
-          <button id="pinSetBtn" class="ghost">Simpan PIN</button>
-          <button id="pinResetBtn" class="ghost">Reset PIN</button>
-        </div>
-
-        <div class="input-row action-row">
-          <label class="checkbox">
-            <input id="showSelectedOnly" type="checkbox">
-            Tampilkan hanya yang terpilih
-          </label>
-          <a class="ghost link-chip" href="sorter.html">Buka Local Sorter</a>
-        </div>
-
-        <div class="input-row action-row">
-          <div class="field grow">
-            <label for="limitInput">Batas pilihan untuk Edit</label>
-            <input id="limitInput" type="number" min="0" placeholder="Kosongkan untuk tanpa batas edit" />
-          </div>
-          <label class="checkbox">
-            <input id="limitLock" type="checkbox">
-            Kunci batas
-          </label>
-          <div id="limitInfo" class="muted">Belum ada batas edit.</div>
-        </div>
-
-        <div class="input-row action-row">
-          <button id="copyClientLinkBtn" class="ghost">Copy Link Client (Limit)</button>
-          <span id="limitBadge" class="badge small">Limit: -</span>
-          <span id="limitWarning" class="muted"></span>
-        </div>
-
-        <div class="input-row action-row">
-          <div class="field grow">
-            <label for="importInput">Tempel hasil pilihan client</label>
-            <textarea id="importInput" rows="3" placeholder="Paste hasil copy dari client (nama file)"></textarea>
-          </div>
-          <button id="importBtn" class="ghost">Terapkan</button>
-        </div>
-      </details>
-
-      <details id="accountMgmtPanel" class="advanced-block vendor-only" open>
-        <summary>Manajemen Akun</summary>
-        <div id="accountMgmtInfo" class="muted" style="margin-bottom:10px;"></div>
-
-        <div id="createBranchAdminBlock">
-          <div class="input-row action-row">
-            <div class="field grow">
-              <label for="branchIdInput">Cabang ID</label>
-              <input id="branchIdInput" placeholder="misal: jakarta" />
-            </div>
-            <div class="field grow">
-              <label for="branchAdminEmailInput">Email Admin Cabang</label>
-              <input id="branchAdminEmailInput" type="email" placeholder="admin.cabang@email.com" />
-            </div>
-            <button id="createBranchAdminBtn" type="button" class="ghost">Tambah Admin Cabang</button>
-          </div>
-        </div>
-
-        <div class="input-row action-row">
-          <div class="field grow">
-            <label for="clientNameInput">Nama Klien</label>
-            <input id="clientNameInput" placeholder="misal: fida&ferdi" />
-          </div>
-          <div class="field grow">
-            <label for="clientEmailInput">Email</label>
-            <input id="clientEmailInput" type="email" placeholder="client@email.com" />
-          </div>
-        </div>
-        <div class="input-row action-row">
-          <div class="field grow">
-            <label for="clientPhoneInput">No HP</label>
-            <input id="clientPhoneInput" placeholder="08xxxxxxxxxx" />
-          </div>
-          <div class="field grow">
-            <label for="clientDriveLinkInput">Link Google Drive</label>
-            <input id="clientDriveLinkInput" placeholder="https://drive.google.com/drive/folders/..." />
-          </div>
-        </div>
-        <div class="input-row action-row">
-          <div class="field grow">
-            <label for="clientWeddingDateInput">Tanggal Pernikahan</label>
-            <input id="clientWeddingDateInput" type="date" />
-          </div>
-          <div class="field grow">
-            <label for="clientBranchIdInput">Cabang ID</label>
-            <input id="clientBranchIdInput" placeholder="misal: jakarta" />
-          </div>
-          <button id="createClientBtn" type="button" class="primary">Tambah Klien</button>
-        </div>
-
-        <div id="clientMasterList" class="mini-table"></div>
-      </details>
-
       <div class="input-row vendor-only">
         <label class="file-btn">
           Tambah Foto Lokal
@@ -251,7 +169,7 @@
       </div>
     </section>
 
-    <aside class="panel preview">
+    <aside class="panel preview client-only">
       <div class="panel-header">
         <h2>Preview & Edit</h2>
         <span id="activeLabel" class="muted">Belum ada foto aktif</span>
@@ -290,6 +208,11 @@
           <button id="unlockBtn" type="button" class="ghost vendor-only">Buka Kunci</button>
           <button id="clearActiveBtn" type="button" class="ghost">Hapus Aktif</button>
         </div>
+        <div class="workflow-set vendor-only">
+          <button type="button" class="wf-chip active" data-workflow-set="todo">Set To Do</button>
+          <button type="button" class="wf-chip" data-workflow-set="progress">Set Progress</button>
+          <button type="button" class="wf-chip" data-workflow-set="done">Set Done</button>
+        </div>
         <div class="field vendor-only">
           <label>Tambahan Pilihan (Client)</label>
           <div class="check-group">
@@ -302,7 +225,7 @@
               Masuk Album (dibaca dari client)
             </label>
           </div>
-          <div class="actions" style="margin-top:8px;">
+          <div class="actions vendor-only" style="margin-top:8px;">
             <button id="batchEditBtn" class="ghost">Batch: Edit</button>
             <button id="batchAlbumBtn" class="ghost">Batch: Album</button>
             <button id="batchClearBtn" class="ghost">Batch: Clear</button>
@@ -310,14 +233,134 @@
         </div>
       </form>
     </aside>
+
+    <aside id="monitorPanel" class="panel vendor-only vendor-monitor">
+      <div class="panel-header">
+        <h2>Monitor Client</h2>
+        <span class="muted">Pantau progres edit & delivery</span>
+      </div>
+      <div class="stats-grid monitor-stats">
+        <div class="stat-card">
+          <div class="stat-label">Edited</div>
+          <div class="stat-value" id="statusEditedCount">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Delivered</div>
+          <div class="stat-value" id="statusDeliveredCount">0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Pending</div>
+          <div class="stat-value" id="statusPendingCount">0</div>
+        </div>
+      </div>
+      <div id="clientStatusList" class="client-status-list">
+        <div class="muted">Memuat status client...</div>
+      </div>
+    </aside>
+
+    <aside id="dashboardQuickPanel" class="panel vendor-only vendor-dashboard-extra">
+      <div class="panel-header">
+        <h2>Ringkasan Operasional</h2>
+        <span class="muted">Aksi cepat vendor</span>
+      </div>
+      <div class="stats-grid monitor-stats">
+        <div class="stat-card">
+          <div class="stat-label">Mode</div>
+          <div class="stat-value">Dashboard</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Data</div>
+          <div class="stat-value" id="dashboardClientCount">0 client</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Aksi</div>
+          <div class="stat-value">Ready</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="gotoPickerBtn" class="primary" type="button">Buka Kurasi Foto</button>
+        <button id="openSettingsBtn" class="ghost" type="button">Buka Pengaturan</button>
+      </div>
+      <div class="muted">Gunakan Dashboard untuk monitor progres client. Buka Kurasi Foto hanya saat perlu sortir/tag foto.</div>
+    </aside>
       </main>
     </div>
   </div>
 
   <nav class="mobile-dock">
-    <button id="exportBtnDock" class="dock-btn">Dapatkan+</button>
-    <button id="resetBtnDock" class="dock-btn ghost">Kirim gambar</button>
+    <button id="exportBtnDock" class="dock-btn">Export</button>
+    <button id="resetBtnDock" class="dock-btn ghost">Reset</button>
   </nav>
+
+  <div id="vendorSettingsModal" class="modal hidden">
+    <div class="modal-card settings-modal-card">
+      <div class="modal-header">
+        <h3>Pengaturan Vendor</h3>
+        <button id="closeVendorSettings" class="ghost">Tutup</button>
+      </div>
+
+      <details class="advanced-block vendor-only" open>
+        <summary>Sinkronisasi & Batas</summary>
+
+        <div class="input-row action-row setting-row setting-row-limit">
+          <div class="field grow">
+            <label for="limitInput">Batas pilihan untuk Edit</label>
+            <input id="limitInput" type="number" min="0" placeholder="Kosongkan untuk tanpa batas edit" />
+          </div>
+          <label class="checkbox">
+            <input id="limitLock" type="checkbox">
+            Kunci batas
+          </label>
+          <div id="limitInfo" class="muted">Belum ada batas edit.</div>
+        </div>
+
+        <div class="input-row action-row setting-row setting-row-copy">
+          <button id="copyClientLinkBtn" class="ghost">Copy Link Client (Limit)</button>
+          <span id="limitBadge" class="badge small">Limit: -</span>
+          <span id="limitWarning" class="muted"></span>
+        </div>
+
+      </details>
+
+      <details id="accountMgmtPanel" class="advanced-block vendor-only" open>
+        <summary>Manajemen Akun</summary>
+        <div id="accountMgmtInfo" class="muted" style="margin-bottom:10px;"></div>
+
+        <div class="input-row action-row setting-row setting-row-client-a">
+          <div class="field grow">
+            <label for="clientNameInput">Nama Klien</label>
+            <input id="clientNameInput" placeholder="misal: fida&ferdi" />
+          </div>
+          <div class="field grow">
+            <label for="clientPhoneInput">No HP</label>
+            <input id="clientPhoneInput" placeholder="08xxxxxxxxxx" />
+          </div>
+          <div class="field grow">
+            <label for="clientDriveLinkInput">Link Google Drive</label>
+            <input id="clientDriveLinkInput" placeholder="https://drive.google.com/drive/folders/..." />
+          </div>
+        </div>
+        <div class="input-row action-row setting-row setting-row-client-b">
+          <div class="field grow" style="grid-column: span 12;">
+            <label for="clientCodeInput">Kode Client</label>
+            <input id="clientCodeInput" placeholder="misal: fidaferdi2402" />
+          </div>
+        </div>
+        <div class="input-row action-row setting-row setting-row-client-c">
+          <div class="field grow">
+            <label for="clientWeddingDateInput">Tanggal Pernikahan</label>
+            <div class="muted">Format simpan otomatis: DDMMYYYY</div>
+            <input id="clientWeddingDateInput" type="date" />
+          </div>
+          <button id="createClientBtn" type="button" class="primary">Tambah Klien</button>
+        </div>
+        <div id="clientCreateNotice" class="muted"></div>
+
+        <div class="muted" style="margin-top:8px;margin-bottom:6px;"><strong>List Klien Terdaftar</strong></div>
+        <div id="clientMasterList" class="mini-table"></div>
+      </details>
+    </div>
+  </div>
 
   <div id="exportModal" class="modal hidden">
     <div class="modal-card">
@@ -346,24 +389,7 @@
     </div>
   </div>
 
-  <div id="pinModal" class="modal hidden">
-    <div class="modal-card">
-      <div class="modal-header">
-        <h3>Masukkan PIN Vendor</h3>
-      </div>
-      <div class="field">
-        <label for="pinInput">PIN</label>
-        <input id="pinInput" type="password" placeholder="Masukkan PIN" />
-      </div>
-      <div class="actions">
-        <button id="pinSubmit" class="primary">Masuk</button>
-        <button id="pinHelp" class="ghost">Cara Set PIN</button>
-      </div>
-      <div id="pinMessage" class="muted"></div>
-    </div>
-  </div>
-
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
   <script type="module">
     import { guardPage } from "./auth.js";
     import { initVendorAdminPanel } from "./vendor-admin.js";

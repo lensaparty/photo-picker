@@ -12,31 +12,31 @@
 <body data-mode="client" class="mode-client">
   <div class="app-shell">
     <aside class="side-rail">
-      <div class="side-brand">Lensaparty</div>
+      <div class="side-logo">LP</div>
+      <div class="side-user" id="sideUserName">Client</div>
       <div class="side-sub">Client Dashboard</div>
-      <nav class="side-nav">
-        <button class="side-item active" type="button">Photo Picker</button>
-        <button class="side-item" type="button" onclick="location.href='index.html'">Akun</button>
-      </nav>
     </aside>
 
     <div class="workspace">
-      <header class="topbar">
-        <div>
-          <h1>Photo Picker</h1>
-          <p class="subtitle vendor-only">Mode Vendor/FG: siapkan foto, kunci, dan kirim ke klien.</p>
-          <p class="subtitle client-only">Mode Client: pilih foto dan kirim hasil ke vendor.</p>
-        </div>
+      <header class="topbar topbar-minimal">
         <div class="top-actions">
           <input id="topSearchInput" class="top-search" placeholder="Cari nama foto..." />
           <button id="themeToggle" class="ghost">Dark</button>
-          <button id="logoutBtn" class="ghost">Masuk</button>
-          <button id="exportBtn" class="ghost">Dapatkan Unsplash+</button>
-          <button id="clearBtn" class="danger">Kirim gambar</button>
+          <button id="logoutBtn" class="ghost">Logout</button>
+          <button id="exportBtn" class="ghost">Export Terpilih</button>
+          <button id="clearBtn" class="danger">Reset</button>
         </div>
       </header>
+      <nav class="browse-tabs" aria-label="Kategori visual">
+        <button class="browse-tab active" type="button">Unggulan</button>
+        <button class="browse-tab" type="button">Potret</button>
+        <button class="browse-tab" type="button">Landscape</button>
+        <button class="browse-tab" type="button">Family</button>
+        <button class="browse-tab" type="button">Pose</button>
+        <button class="browse-tab" type="button">Outfit</button>
+      </nav>
 
-      <main class="layout">
+      <main class="layout client-simple">
     <section class="panel">
       <div class="panel-header">
         <h2>Input & Filter</h2>
@@ -65,7 +65,20 @@
         </div>
       </div>
 
-      <div class="input-row">
+      <div class="workflow-strip">
+        <div class="wf-col"><span>To Do</span><strong id="wfTodoCount">0</strong></div>
+        <div class="wf-col"><span>On Progress</span><strong id="wfProgressCount">0</strong></div>
+        <div class="wf-col"><span>Done</span><strong id="wfDoneCount">0</strong></div>
+      </div>
+
+      <div class="workflow-filter">
+        <button type="button" class="wf-chip active" data-workflow-filter="all">Semua</button>
+        <button type="button" class="wf-chip" data-workflow-filter="todo">To Do</button>
+        <button type="button" class="wf-chip" data-workflow-filter="progress">On Progress</button>
+        <button type="button" class="wf-chip" data-workflow-filter="done">Done</button>
+      </div>
+
+      <div class="input-row drive-controls">
         <div class="field grow">
           <label for="folderInput">Link Folder Google Drive (publik)</label>
           <input id="folderInput" placeholder="https://drive.google.com/drive/folders/..." />
@@ -192,6 +205,11 @@
           <button id="unlockBtn" type="button" class="ghost vendor-only">Buka Kunci</button>
           <button id="clearActiveBtn" type="button" class="ghost">Hapus Aktif</button>
         </div>
+        <div class="workflow-set vendor-only">
+          <button type="button" class="wf-chip active" data-workflow-set="todo">Set To Do</button>
+          <button type="button" class="wf-chip" data-workflow-set="progress">Set Progress</button>
+          <button type="button" class="wf-chip" data-workflow-set="done">Set Done</button>
+        </div>
         <div class="field client-only">
           <label>Tambahan Pilihan (Client)</label>
           <div class="check-group">
@@ -204,7 +222,7 @@
               Masuk Album (34-37)
             </label>
           </div>
-          <div class="actions" style="margin-top:8px;">
+          <div class="actions vendor-only" style="margin-top:8px;">
             <button id="batchEditBtn" class="ghost">Batch: Edit</button>
             <button id="batchAlbumBtn" class="ghost">Batch: Album</button>
             <button id="batchClearBtn" class="ghost">Batch: Clear</button>
@@ -217,8 +235,8 @@
   </div>
 
   <nav class="mobile-dock">
-    <button id="exportBtnDock" class="dock-btn">Dapatkan+</button>
-    <button id="resetBtnDock" class="dock-btn ghost">Kirim gambar</button>
+    <button id="exportBtnDock" class="dock-btn">Export</button>
+    <button id="resetBtnDock" class="dock-btn ghost">Reset</button>
   </nav>
 
   <div id="exportModal" class="modal hidden">
@@ -243,12 +261,12 @@
       </div>
       <div class="muted">
         Silakan pilih foto sesuai paket. Klik foto untuk memilih, lalu tekan
-        <strong>Dapatkan Unsplash+</strong> untuk menyalin hasil dan kirim ke vendor/FG via WA.
+        <strong>Export Terpilih</strong> untuk menyalin hasil dan kirim ke vendor/FG via WA.
       </div>
     </div>
   </div>
 
-  <script src="script.js"></script>
+  <script type="module" src="script.js"></script>
   <script type="module">
     import { guardPage } from "./auth.js";
     guardPage("user");

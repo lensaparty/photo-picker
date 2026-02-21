@@ -4,10 +4,8 @@ import {
   GoogleAuthProvider,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signInWithPopup,
   signOut,
-  sendPasswordResetEmail,
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import {
   getFirestore,
@@ -18,6 +16,7 @@ import {
   query,
   where,
   setDoc,
+  updateDoc,
   addDoc,
   arrayUnion,
   serverTimestamp,
@@ -53,6 +52,10 @@ function normalizeEmail(email) {
 
 function normalizeBranchId(value) {
   return (value || "").trim().toLowerCase().replace(/\s+/g, "-");
+}
+
+function normalizeClientCode(value) {
+  return (value || "").trim().toLowerCase().replace(/\s+/g, "");
 }
 
 function safeId(value) {
@@ -103,6 +106,9 @@ function clearUserScope() {
   localStorage.removeItem("photoPicker.userRole");
   localStorage.removeItem("photoPicker.userBranch");
   localStorage.removeItem("photoPicker.clientProfile");
+  localStorage.removeItem("photoPicker.clientSession");
+  localStorage.removeItem("photoPicker.userEmail");
+  localStorage.removeItem("photoPicker.userDisplay");
 }
 
 async function signOutQuickly() {
@@ -125,11 +131,38 @@ async function getBranchByAdminEmail(emailLower) {
 }
 
 async function getClientByEmail(emailLower) {
+  if (!emailLower) return null;
   const q = query(collection(db, "clients"), where("emailLower", "==", emailLower), limit(1));
   const snap = await getDocs(q);
   if (snap.empty) return null;
   const d = snap.docs[0];
   return { id: d.id, ...d.data() };
+}
+
+async function getClientByCode(codeLower) {
+  if (!codeLower) return null;
+  const q = query(collection(db, "clients"), where("clientCodeLower", "==", codeLower), limit(1));
+  const snap = await getDocs(q);
+  if (snap.empty) return null;
+  const d = snap.docs[0];
+  return { id: d.id, ...d.data() };
+}
+
+function setClientSession(profile) {
+  const safeProfile = { ...profile };
+  delete safeProfile.clientPin;
+  delete safeProfile.clientPinRaw;
+  localStorage.setItem("photoPicker.clientSession", JSON.stringify({
+    id: safeProfile.id || "",
+    branchId: safeProfile.branchId || "",
+    clientCode: safeProfile.clientCode || "",
+    name: safeProfile.name || "Client",
+  }));
+  localStorage.setItem("photoPicker.clientProfile", JSON.stringify(safeProfile));
+  localStorage.setItem("photoPicker.userRole", "client");
+  localStorage.removeItem("photoPicker.userBranch");
+  localStorage.removeItem("photoPicker.userEmail");
+  localStorage.setItem("photoPicker.userDisplay", safeProfile.name || "Client");
 }
 
 async function resolveContextByUser(user) {
@@ -196,6 +229,7 @@ async function handleLoginResult(user, loginMode, authError) {
   }
 
   persistUserScope(context);
+  localStorage.setItem("photoPicker.userEmail", email);
 
   if (context.role === "client") {
     const profile = await getClientByEmail(normalizeEmail(user.email));
@@ -214,7 +248,8 @@ function initLoginPage({ mode }) {
   const tabLogin = document.getElementById("tabLogin");
   const tabRegister = document.getElementById("tabRegister");
   const forgotPassword = document.getElementById("forgotPassword");
-  const allowRegister = mode === "client";
+  const allowRegister = false;
+  const allowGoogle = mode === "admin";
   let redirecting = false;
 
   function showError(msg) {
@@ -238,8 +273,44 @@ function initLoginPage({ mode }) {
     showError("");
   }
 
-  tabLogin?.addEventListener("click", () => setTab("login"));
-  tabRegister?.addEventListener("click", () => setTab("register"));
+  if (tabLogin) tabLogin.addEventListener("click", () => setTab("login"));
+  if (tabRegister) tabRegister.addEventListener("click", () => setTab("register"));
+
+  if (!allowGoogle && googleBtn) {
+    googleBtn.style.display = "none";
+  }
+
+  if (mode === "client") {
+    loginForm?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      showError("");
+      const code = normalizeClientCode(document.getElementById("loginEmail")?.value || "");
+      if (!code) {
+        showError("Isi kode client.");
+        return;
+      }
+      try {
+        const profile = await getClientByCode(code);
+        if (!profile) {
+          showError("Kode client tidak ditemukan.");
+          return;
+        }
+        if ((profile.status || "active") !== "active") {
+          showError("Akun client tidak aktif.");
+          return;
+        }
+        setClientSession(profile);
+        window.location.replace("client.html");
+      } catch (error) {
+        showError(formatAuthError(error));
+      }
+    });
+
+    if (forgotPassword) forgotPassword.style.display = "none";
+    onAuthStateChanged(auth, () => {});
+    setTab("login");
+    return;
+  }
 
   loginForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -258,22 +329,7 @@ function initLoginPage({ mode }) {
     }
   });
 
-  registerForm?.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    showError("");
-    const email = document.getElementById("registerEmail").value.trim();
-    const password = document.getElementById("registerPassword").value;
-    try {
-      const cred = await createUserWithEmailAndPassword(auth, email, password);
-      if (!redirecting) {
-        redirecting = true;
-        await handleLoginResult(cred.user, mode, authError);
-      }
-    } catch (error) {
-      redirecting = false;
-      showError(formatAuthError(error));
-    }
-  });
+  registerForm?.addEventListener("submit", (e) => e.preventDefault());
 
   googleBtn?.addEventListener("click", async () => {
     showError("");
@@ -290,19 +346,8 @@ function initLoginPage({ mode }) {
     }
   });
 
-  forgotPassword?.addEventListener("click", async () => {
-    showError("");
-    const email = document.getElementById("loginEmail").value.trim();
-    if (!email) {
-      showError("Masukkan email terlebih dahulu.");
-      return;
-    }
-    try {
-      await sendPasswordResetEmail(auth, email);
-      showError("Link reset password sudah dikirim ke email.");
-    } catch (error) {
-      showError(formatAuthError(error));
-    }
+  forgotPassword?.addEventListener("click", () => {
+    showError("Reset password dilakukan oleh super admin.");
   });
 
   onAuthStateChanged(auth, async (user) => {
@@ -368,35 +413,58 @@ export async function createClientRecord(payload, actor) {
   if (!isAdminRole(role)) throw new Error("forbidden");
 
   const name = (payload?.name || "").trim();
-  const email = normalizeEmail(payload?.email);
   const phone = (payload?.phone || "").trim();
   const driveLink = (payload?.driveLink || "").trim();
   const weddingDate = (payload?.weddingDate || "").trim();
-  let branchId = normalizeBranchId(payload?.branchId);
+  const clientCode = normalizeClientCode(payload?.clientCode);
+  const email = normalizeEmail(payload?.email || "");
+  let branchId = normalizeBranchId(payload?.branchId || "vendor");
 
   if (role === "branch_admin") {
-    branchId = actorBranch;
+    branchId = actorBranch || "vendor";
   }
 
-  if (!name || !email || !phone || !driveLink || !weddingDate || !branchId) {
+  if (!name || !phone || !driveLink || !weddingDate || !clientCode) {
     throw new Error("invalid");
   }
 
-  const existing = await getClientByEmail(email);
-  if (existing) throw new Error("exists");
+  const existingCode = await getClientByCode(clientCode);
+  if (existingCode) throw new Error("code_exists");
+  if (email) {
+    const existingEmail = await getClientByEmail(email);
+    if (existingEmail) throw new Error("email_exists");
+  }
 
   await addDoc(collection(db, "clients"), {
     name,
-    email,
-    emailLower: email,
+    email: email || "",
+    emailLower: email || "",
     phone,
     driveLink,
     weddingDate,
+    clientCode,
+    clientCodeLower: clientCode,
+    edited: false,
+    delivered: false,
+    deliveredAt: null,
     branchId,
     status: "active",
     createdByRole: role,
     createdByUid: auth.currentUser?.uid || "",
     createdAt: serverTimestamp(),
+  });
+}
+
+export async function updateClientProgress(clientId, patch, actor) {
+  if (!clientId) throw new Error("invalid");
+  const role = actor?.role || "";
+  if (!isAdminRole(role)) throw new Error("forbidden");
+  const ref = doc(db, "clients", clientId);
+  await updateDoc(ref, {
+    ...patch,
+    updatedAt: serverTimestamp(),
+    updatedByRole: role,
+    updatedByUid: auth.currentUser?.uid || "",
   });
 }
 
@@ -423,20 +491,36 @@ export async function listClientsForScope(scope) {
 }
 
 export async function guardPage(requiredRole) {
+  const loginTarget = requiredRole === "admin" ? "admin-login.html" : "client-login.html";
+  const logoutTarget = loginTarget;
   const logoutBtn = document.getElementById("logoutBtn");
   if (logoutBtn) {
-    logoutBtn.addEventListener("click", async () => {
+    logoutBtn.addEventListener("click", () => {
       logoutBtn.disabled = true;
       sessionStorage.setItem(LOGOUT_FLAG_KEY, "1");
       clearUserScope();
-      await signOutQuickly();
-      window.location.replace("index.html");
+      signOutQuickly();
+      window.location.replace(logoutTarget);
     });
+  }
+
+  if (requiredRole === "user") {
+    const raw = localStorage.getItem("photoPicker.clientSession");
+    if (raw) {
+      try {
+        const session = JSON.parse(raw);
+        if (session?.id) {
+          persistUserScope({ role: "client", branchId: session.branchId || "" });
+          localStorage.setItem("photoPicker.userDisplay", session.name || "Client");
+          return;
+        }
+      } catch (_) {}
+    }
   }
 
   onAuthStateChanged(auth, async (user) => {
     if (!user) {
-      window.location.replace("index.html");
+      window.location.replace(loginTarget);
       return;
     }
     let context;
@@ -445,15 +529,16 @@ export async function guardPage(requiredRole) {
     } catch (error) {
       await signOut(auth);
       alert(`Gagal validasi role user: ${formatAuthError(error)}`);
-      window.location.replace("index.html");
+      window.location.replace(loginTarget);
       return;
     }
     if (context.role === "blocked") {
       await signOut(auth);
-      window.location.replace("index.html");
+      window.location.replace(loginTarget);
       return;
     }
     persistUserScope(context);
+    localStorage.setItem("photoPicker.userEmail", normalizeEmail(user.email));
 
     if (context.role === "client") {
       const profile = await getClientByEmail(normalizeEmail(user.email));
@@ -471,6 +556,16 @@ export async function guardPage(requiredRole) {
 }
 
 function getSelectionOwner(mode) {
+  if (mode === "client") {
+    const raw = localStorage.getItem("photoPicker.clientSession");
+    if (raw) {
+      try {
+        const session = JSON.parse(raw);
+        if (session?.id) return `client_${session.id}`;
+        if (session?.clientCode) return `client_${safeId(session.clientCode)}`;
+      } catch (_) {}
+    }
+  }
   const email = normalizeEmail(auth.currentUser?.email || "");
   if (!email) return "guest";
   if (mode === "client") return email;
