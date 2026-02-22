@@ -575,7 +575,50 @@ export async function createClientRecord(payload, actor) {
 
   // Untuk create baru, pakai query cepat (tanpa scan data lama) agar respons tidak lambat.
   const existingCode = await getClientByCodeFast(clientCode);
-  if (existingCode) throw new Error("code_exists");
+  if (existingCode) {
+    // Jika kode sudah ada, treat sebagai update data client existing
+    // supaya vendor tidak mentok di public karena duplikasi kode.
+    const updatedPayload = {
+      name,
+      phone: phone || "-",
+      driveLink,
+      weddingDate: weddingDate || "-",
+      clientCode,
+      clientCodeLower: clientCode,
+      email: email || existingCode.email || "",
+      emailLower: email || existingCode.emailLower || "",
+      branchId: role === "branch_admin" ? (actorBranch || existingCode.branchId || "vendor") : (branchId || existingCode.branchId || "vendor"),
+      status: existingCode.status || "active",
+      updatedAt: new Date().toISOString(),
+      updatedByRole: role,
+      updatedByUid: auth.currentUser?.uid || "",
+    };
+
+    upsertLocalClient(
+      normalizeForLocalCache({
+        ...existingCode,
+        ...updatedPayload,
+      })
+    );
+
+    if (existingCode.id && !String(existingCode.id).startsWith("local_")) {
+      try {
+        await withFirestoreTimeout(
+          updateDoc(doc(db, "clients", existingCode.id), {
+            ...updatedPayload,
+            updatedAt: serverTimestamp(),
+            updatedByRole: role,
+            updatedByUid: auth.currentUser?.uid || "",
+          }),
+          FIRESTORE_WRITE_TIMEOUT_MS
+        );
+      } catch (_) {
+        return { saved: "updated_local_only", id: existingCode.id };
+      }
+    }
+
+    return { saved: "updated_existing", id: existingCode.id };
+  }
   if (email) {
     const existingEmail = await getClientByEmail(email);
     if (existingEmail) throw new Error("email_exists");

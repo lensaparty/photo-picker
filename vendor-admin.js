@@ -177,15 +177,20 @@ function bindClientCreate(scope) {
     };
 
     try {
-      await withTimeout(createClientRecord(payload, scope), 10000);
+      const result = await withTimeout(createClientRecord(payload, scope), 10000);
       byId("clientNameInput").value = "";
       byId("clientPhoneInput").value = "";
       byId("clientDriveLinkInput").value = "";
       byId("clientWeddingDateInput").value = "";
       byId("clientCodeInput").value = "";
       await withTimeout(renderClientList(scope), 10000);
-      if (notice) notice.textContent = "Klien berhasil ditambahkan. Login pakai Kode Client.";
-      alert("Klien berhasil ditambahkan.");
+      if (result?.saved === "updated_existing" || result?.saved === "updated_local_only") {
+        if (notice) notice.textContent = "Kode client sudah ada: data klien diperbarui.";
+        alert("Kode client sudah ada. Data klien berhasil diperbarui.");
+      } else {
+        if (notice) notice.textContent = "Klien berhasil ditambahkan. Login pakai Kode Client.";
+        alert("Klien berhasil ditambahkan.");
+      }
     } catch (error) {
       if (error.message === "code_exists") {
         if (notice) notice.textContent = "Peringatan: Kode client sudah dipakai. Pakai kode lain.";
