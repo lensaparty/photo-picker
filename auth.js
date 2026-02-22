@@ -49,6 +49,11 @@ const LOCAL_CLIENTS_KEY = "photoPicker.localClients";
 const FIRESTORE_QUERY_TIMEOUT_MS = 4000;
 const FIRESTORE_WRITE_TIMEOUT_MS = 5000;
 
+function isLocalRuntime() {
+  const host = window.location.hostname;
+  return host === "localhost" || host === "127.0.0.1";
+}
+
 function normalizeEmail(email) {
   return (email || "").trim().toLowerCase();
 }
@@ -219,13 +224,13 @@ async function getClientByEmail(emailLower) {
   try {
     const q = query(collection(db, "clients"), where("emailLower", "==", emailLower), limit(1));
     const snap = await withFirestoreTimeout(getDocs(q));
-    if (snap.empty) return getLocalClientByEmail(emailLower);
+    if (snap.empty) return isLocalRuntime() ? getLocalClientByEmail(emailLower) : null;
     const d = snap.docs[0];
     const found = { id: d.id, ...d.data() };
     upsertLocalClient(normalizeForLocalCache(found));
     return found;
   } catch (_) {
-    return getLocalClientByEmail(emailLower);
+    return isLocalRuntime() ? getLocalClientByEmail(emailLower) : null;
   }
 }
 
@@ -267,7 +272,7 @@ async function getClientByCode(codeLower) {
   } catch (_) {
     // fallback local below
   }
-  return getLocalClientByCode(codeLower);
+  return isLocalRuntime() ? getLocalClientByCode(codeLower) : null;
 }
 
 async function getClientByCodeFast(codeLower) {
@@ -284,7 +289,7 @@ async function getClientByCodeFast(codeLower) {
   } catch (_) {
     // fallback local below
   }
-  return getLocalClientByCode(codeLower);
+  return isLocalRuntime() ? getLocalClientByCode(codeLower) : null;
 }
 
 function setClientSession(profile) {
@@ -576,8 +581,8 @@ export async function createClientRecord(payload, actor) {
   // Untuk create baru, pakai query cepat (tanpa scan data lama) agar respons tidak lambat.
   const existingCode = await getClientByCodeFast(clientCode);
   if (existingCode) {
-    // Jika kode sudah ada, treat sebagai update data client existing
-    // supaya vendor tidak mentok di public karena duplikasi kode.
+    // Jika kode sudah ada, treat sebagai update data client existing.
+    // Penting: di public WAJIB berhasil update ke Firestore agar data sinkron lintas device.
     const updatedPayload = {
       name,
       phone: phone || "-",
@@ -594,12 +599,14 @@ export async function createClientRecord(payload, actor) {
       updatedByUid: auth.currentUser?.uid || "",
     };
 
-    upsertLocalClient(
-      normalizeForLocalCache({
-        ...existingCode,
-        ...updatedPayload,
-      })
-    );
+    if (isLocalRuntime()) {
+      upsertLocalClient(
+        normalizeForLocalCache({
+          ...existingCode,
+          ...updatedPayload,
+        })
+      );
+    }
 
     if (existingCode.id && !String(existingCode.id).startsWith("local_")) {
       try {
@@ -613,7 +620,8 @@ export async function createClientRecord(payload, actor) {
           FIRESTORE_WRITE_TIMEOUT_MS
         );
       } catch (_) {
-        return { saved: "updated_local_only", id: existingCode.id };
+        if (isLocalRuntime()) return { saved: "updated_local_only", id: existingCode.id };
+        throw new Error("remote_required");
       }
     }
 
@@ -643,24 +651,40 @@ export async function createClientRecord(payload, actor) {
     createdAt: new Date().toISOString(),
   };
 
-  // Simpan lokal dulu agar UI tidak terasa "hang" saat Firestore lambat.
-  upsertLocalClient(normalizeForLocalCache({
-    ...localRecord,
-    id: localClientId(clientCode),
-    source: "local",
-  }));
+  if (isLocalRuntime()) {
+    // Local-only cache untuk development localhost.
+    upsertLocalClient(
+      normalizeForLocalCache({
+        ...localRecord,
+        id: localClientId(clientCode),
+        source: "local",
+      })
+    );
+  }
 
   try {
-    await withFirestoreTimeout(
+    const added = await withFirestoreTimeout(
       addDoc(collection(db, "clients"), {
         ...localRecord,
         createdAt: serverTimestamp(),
       }),
       FIRESTORE_WRITE_TIMEOUT_MS
     );
+    if (isLocalRuntime()) {
+      upsertLocalClient(
+        normalizeForLocalCache({
+          ...localRecord,
+          id: added?.id || localClientId(clientCode),
+          source: "remote",
+        })
+      );
+    }
   } catch (error) {
-    // Tetap sukses lokal; dashboard tetap jalan walau Firestore gagal sementara.
-    return { saved: "local_only", reason: error?.message || "firestore_unavailable" };
+    if (isLocalRuntime()) {
+      // Tetap sukses lokal saat development localhost.
+      return { saved: "local_only", reason: error?.message || "firestore_unavailable" };
+    }
+    throw new Error("remote_required");
   }
 
   return { saved: "remote_and_local" };
@@ -700,7 +724,7 @@ export async function listClientsForScope(scope) {
   const role = scope?.role || "";
   const branchId = scope?.branchId || "";
   if (!isAdminRole(role)) return [];
-  const localList = listLocalClientsForScope(scope);
+  const localList = isLocalRuntime() ? listLocalClientsForScope(scope) : [];
   let remoteList = [];
   try {
     let q;
@@ -716,7 +740,8 @@ export async function listClientsForScope(scope) {
     remoteList = [];
   }
 
-  return mergeByClientCode(remoteList, localList).sort((a, b) => {
+  const sourceList = isLocalRuntime() ? mergeByClientCode(remoteList, localList) : remoteList;
+  return sourceList.sort((a, b) => {
     const aa = a?.createdAt?.toDate ? a.createdAt.toDate().getTime() : Date.parse(a?.createdAt || 0) || 0;
     const bb = b?.createdAt?.toDate ? b.createdAt.toDate().getTime() : Date.parse(b?.createdAt || 0) || 0;
     return bb - aa;

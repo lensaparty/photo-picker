@@ -195,6 +195,9 @@ function bindClientCreate(scope) {
       if (error.message === "code_exists") {
         if (notice) notice.textContent = "Peringatan: Kode client sudah dipakai. Pakai kode lain.";
         alert("Kode client sudah dipakai.");
+      } else if (error.message === "remote_required") {
+        if (notice) notice.textContent = "Peringatan: data belum tersimpan ke cloud. Cek Firestore Rules/koneksi lalu coba lagi.";
+        alert("Gagal sinkron ke cloud. Data belum tersimpan. Cek Firestore Rules dan koneksi internet.");
       } else if (error.message === "invalid") {
         if (notice) notice.textContent = "Peringatan: isi minimal Nama Klien, Link Google Drive, dan Kode Client.";
         alert("Isi minimal Nama Klien, Link Google Drive, dan Kode Client.");
