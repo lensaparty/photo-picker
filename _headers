@@ -1,0 +1,29 @@
+/*.html
+  Cache-Control: no-cache, must-revalidate
+
+/index.html
+  Cache-Control: no-cache, must-revalidate
+
+/admin-login.html
+  Cache-Control: no-cache, must-revalidate
+
+/client-login.html
+  Cache-Control: no-cache, must-revalidate
+
+/vendor.html
+  Cache-Control: no-cache, must-revalidate
+
+/client.html
+  Cache-Control: no-cache, must-revalidate
+
+/style.css
+  Cache-Control: public, max-age=300, must-revalidate
+
+/script.js
+  Cache-Control: public, max-age=300, must-revalidate
+
+/auth.js
+  Cache-Control: public, max-age=300, must-revalidate
+
+/vendor-admin.js
+  Cache-Control: public, max-age=300, must-revalidate

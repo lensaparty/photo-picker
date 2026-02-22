@@ -21,9 +21,11 @@ const prevPageBtn = document.getElementById("prevPageBtn");
 const nextPageBtn = document.getElementById("nextPageBtn");
 const pageInfo = document.getElementById("pageInfo");
 const pageSizeSelect = document.getElementById("pageSizeSelect");
-const loadMoreBtn = document.getElementById("loadMoreBtn");
 const selectedMiniBadge = document.getElementById("selectedMiniBadge");
 const donePickBtn = document.getElementById("donePickBtn");
+const topPrevPageBtn = document.getElementById("topPrevPageBtn");
+const topNextPageBtn = document.getElementById("topNextPageBtn");
+const topPageInfo = document.getElementById("topPageInfo");
 
 const previewWrap = document.getElementById("previewWrap");
 const activeLabel = document.getElementById("activeLabel");
@@ -677,17 +679,18 @@ function renderGrid() {
   emptyState.style.display = state.photos.length === 0 ? "block" : "none";
   const totalPages = Math.max(1, Math.ceil(visible.length / state.pageSize));
   if (state.page > totalPages) state.page = totalPages;
-  const startIndex = isClientMode ? 0 : (state.page - 1) * state.pageSize;
-  const endIndex = isClientMode ? state.page * state.pageSize : startIndex + state.pageSize;
+  const startIndex = (state.page - 1) * state.pageSize;
+  const endIndex = startIndex + state.pageSize;
   const pageItems = visible.slice(startIndex, endIndex);
   pagination.classList.toggle("hidden", visible.length === 0);
   pageInfo.textContent = `Halaman ${state.page} / ${totalPages}`;
+  if (topPageInfo) {
+    topPageInfo.textContent = `Page ${state.page}/${totalPages}`;
+  }
   prevPageBtn.disabled = state.page <= 1;
   nextPageBtn.disabled = state.page >= totalPages;
-  if (loadMoreBtn) {
-    const hasMore = visible.length > pageItems.length;
-    loadMoreBtn.style.display = hasMore ? "inline-flex" : "none";
-  }
+  if (topPrevPageBtn) topPrevPageBtn.disabled = state.page <= 1;
+  if (topNextPageBtn) topNextPageBtn.disabled = state.page >= totalPages;
 
   pageItems.forEach((photo) => {
     const card = document.createElement("div");
@@ -1115,16 +1118,25 @@ nextPageBtn.addEventListener("click", () => {
   renderGrid();
 });
 
-if (loadMoreBtn) {
-  loadMoreBtn.addEventListener("click", () => {
-    state.page += 1;
-    renderGrid();
-  });
-}
-
 if (donePickBtn) {
   donePickBtn.addEventListener("click", () => {
     exportBtn.click();
+  });
+}
+
+if (topPrevPageBtn) {
+  topPrevPageBtn.addEventListener("click", () => {
+    if (state.page > 1) {
+      state.page -= 1;
+      renderGrid();
+    }
+  });
+}
+
+if (topNextPageBtn) {
+  topNextPageBtn.addEventListener("click", () => {
+    state.page += 1;
+    renderGrid();
   });
 }
 

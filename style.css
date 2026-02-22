@@ -266,12 +266,13 @@ body[data-theme="dark"] .top-search {
 .client-feed .browse-tabs {
   border-bottom: 1px solid var(--border);
   margin-bottom: 12px;
-  padding-bottom: 8px;
+  padding: 8px 6px 10px;
   position: sticky;
   top: 68px;
   z-index: 25;
   background: rgba(245, 243, 238, 0.92);
   backdrop-filter: blur(6px);
+  border-radius: 12px;
 }
 
 body[data-theme="dark"] .client-feed .browse-tabs {
@@ -428,6 +429,12 @@ body[data-theme="dark"] .danger {
   gap: 8px;
   align-items: center;
   flex: 0 0 auto;
+}
+
+.mini-nav {
+  height: 34px;
+  padding: 0 12px;
+  min-width: 68px;
 }
 
 .selected-mini {
