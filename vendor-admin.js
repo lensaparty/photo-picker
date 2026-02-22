@@ -34,6 +34,14 @@ function toDdMmYyyy(value) {
   return `${d}${m}${y}`;
 }
 
+function withTimeout(promise, ms = 9000) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("timeout")), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 async function renderClientList(scope) {
   const wrap = byId("clientMasterList");
   const statusWrap = byId("clientStatusList");
@@ -156,6 +164,9 @@ function bindClientCreate(scope) {
   const notice = byId("clientCreateNotice");
   if (!btn) return;
   btn.addEventListener("click", async () => {
+    const originalLabel = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = "Menyimpan...";
     if (notice) notice.textContent = "";
     const payload = {
       name: byId("clientNameInput")?.value || "",
@@ -166,13 +177,13 @@ function bindClientCreate(scope) {
     };
 
     try {
-      await createClientRecord(payload, scope);
+      await withTimeout(createClientRecord(payload, scope), 10000);
       byId("clientNameInput").value = "";
       byId("clientPhoneInput").value = "";
       byId("clientDriveLinkInput").value = "";
       byId("clientWeddingDateInput").value = "";
       byId("clientCodeInput").value = "";
-      await renderClientList(scope);
+      await withTimeout(renderClientList(scope), 10000);
       if (notice) notice.textContent = "Klien berhasil ditambahkan. Login pakai Kode Client.";
       alert("Klien berhasil ditambahkan.");
     } catch (error) {
@@ -180,15 +191,21 @@ function bindClientCreate(scope) {
         if (notice) notice.textContent = "Peringatan: Kode client sudah dipakai. Pakai kode lain.";
         alert("Kode client sudah dipakai.");
       } else if (error.message === "invalid") {
-        if (notice) notice.textContent = "Peringatan: isi semua data klien dulu.";
-        alert("Lengkapi data klien dulu.");
+        if (notice) notice.textContent = "Peringatan: isi minimal Nama Klien, Link Google Drive, dan Kode Client.";
+        alert("Isi minimal Nama Klien, Link Google Drive, dan Kode Client.");
       } else if (error.message === "forbidden") {
         if (notice) notice.textContent = "Peringatan: role kamu tidak punya akses.";
         alert("Role kamu tidak punya akses.");
+      } else if (error.message === "timeout") {
+        if (notice) notice.textContent = "Peringatan: koneksi lambat/timeout. Coba klik Tambah Klien lagi.";
+        alert("Timeout saat simpan data klien. Cek koneksi lalu coba lagi.");
       } else {
-        if (notice) notice.textContent = "Peringatan: gagal menyimpan klien.";
-        alert("Gagal menyimpan klien.");
+        if (notice) notice.textContent = `Peringatan: gagal menyimpan klien (${error.message || "unknown"}).`;
+        alert(`Gagal menyimpan klien: ${error.message || "unknown error"}`);
       }
+    } finally {
+      btn.disabled = false;
+      btn.textContent = originalLabel;
     }
   });
 }

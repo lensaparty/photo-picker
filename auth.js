@@ -45,6 +45,9 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 const ROLE_RESOLVE_TIMEOUT_MS = 1500;
 const LOGOUT_FLAG_KEY = "photoPicker.forceLogout";
+const LOCAL_CLIENTS_KEY = "photoPicker.localClients";
+const FIRESTORE_QUERY_TIMEOUT_MS = 4000;
+const FIRESTORE_WRITE_TIMEOUT_MS = 5000;
 
 function normalizeEmail(email) {
   return (email || "").trim().toLowerCase();
@@ -60,6 +63,87 @@ function normalizeClientCode(value) {
 
 function safeId(value) {
   return (value || "").toString().toLowerCase().replace(/[^a-z0-9_-]/g, "_");
+}
+
+function readLocalClients() {
+  try {
+    const raw = localStorage.getItem(LOCAL_CLIENTS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+function writeLocalClients(list) {
+  localStorage.setItem(LOCAL_CLIENTS_KEY, JSON.stringify(list));
+}
+
+function upsertLocalClient(client) {
+  const list = readLocalClients();
+  const key = normalizeClientCode(client.clientCodeLower || client.clientCode || "");
+  const idx = list.findIndex((c) => normalizeClientCode(c.clientCodeLower || c.clientCode || "") === key);
+  if (idx >= 0) list[idx] = { ...list[idx], ...client };
+  else list.push(client);
+  writeLocalClients(list);
+}
+
+function normalizeForLocalCache(client) {
+  const code = normalizeClientCode(client?.clientCode || client?.clientCodeLower || "");
+  return {
+    ...client,
+    id: client?.id || localClientId(code),
+    clientCode: code || "",
+    clientCodeLower: code || "",
+    emailLower: normalizeEmail(client?.emailLower || client?.email || ""),
+    branchId: normalizeBranchId(client?.branchId || "vendor"),
+  };
+}
+
+function getLocalClientByCode(codeLower) {
+  const list = readLocalClients();
+  return list.find((c) => normalizeClientCode(c.clientCodeLower || c.clientCode || "") === normalizeClientCode(codeLower)) || null;
+}
+
+function getLocalClientByEmail(emailLower) {
+  if (!emailLower) return null;
+  const list = readLocalClients();
+  return list.find((c) => (c.emailLower || "").toLowerCase() === emailLower) || null;
+}
+
+function listLocalClientsForScope(scope) {
+  const role = scope?.role || "";
+  const branchId = scope?.branchId || "";
+  const list = readLocalClients();
+  if (role === "branch_admin" && branchId) {
+    return list.filter((c) => (c.branchId || "") === branchId);
+  }
+  if (role === "central_admin" || role === "branch_admin") {
+    return list;
+  }
+  return [];
+}
+
+function mergeByClientCode(remoteList, localList) {
+  const map = new Map();
+  [...localList, ...remoteList].forEach((item) => {
+    const key = (item.clientCodeLower || item.clientCode || item.id || Math.random()).toString().toLowerCase();
+    map.set(key, item);
+  });
+  return Array.from(map.values());
+}
+
+function localClientId(clientCode) {
+  return `local_${safeId(clientCode || `c_${Date.now()}`)}`;
+}
+
+async function withFirestoreTimeout(promise, ms = FIRESTORE_QUERY_TIMEOUT_MS) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("firestore_timeout")), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
 }
 
 function setErrorText(el, msg) {
@@ -132,20 +216,75 @@ async function getBranchByAdminEmail(emailLower) {
 
 async function getClientByEmail(emailLower) {
   if (!emailLower) return null;
-  const q = query(collection(db, "clients"), where("emailLower", "==", emailLower), limit(1));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() };
+  try {
+    const q = query(collection(db, "clients"), where("emailLower", "==", emailLower), limit(1));
+    const snap = await withFirestoreTimeout(getDocs(q));
+    if (snap.empty) return getLocalClientByEmail(emailLower);
+    const d = snap.docs[0];
+    const found = { id: d.id, ...d.data() };
+    upsertLocalClient(normalizeForLocalCache(found));
+    return found;
+  } catch (_) {
+    return getLocalClientByEmail(emailLower);
+  }
 }
 
 async function getClientByCode(codeLower) {
+  codeLower = normalizeClientCode(codeLower);
   if (!codeLower) return null;
-  const q = query(collection(db, "clients"), where("clientCodeLower", "==", codeLower), limit(1));
-  const snap = await getDocs(q);
-  if (snap.empty) return null;
-  const d = snap.docs[0];
-  return { id: d.id, ...d.data() };
+  try {
+    const q = query(collection(db, "clients"), where("clientCodeLower", "==", codeLower), limit(1));
+    const snap = await withFirestoreTimeout(getDocs(q));
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      const found = { id: d.id, ...d.data() };
+      upsertLocalClient(normalizeForLocalCache(found));
+      return found;
+    }
+
+    // Fallback tambahan: sebagian data lama menyimpan kode di field clientCode.
+    const qRaw = query(collection(db, "clients"), where("clientCode", "==", codeLower), limit(1));
+    const rawSnap = await withFirestoreTimeout(getDocs(qRaw), 3500);
+    if (!rawSnap.empty) {
+      const d = rawSnap.docs[0];
+      const found = { id: d.id, ...d.data() };
+      upsertLocalClient(normalizeForLocalCache(found));
+      return found;
+    }
+
+    // Fallback data lama tanpa clientCodeLower.
+    const all = await withFirestoreTimeout(getDocs(collection(db, "clients")), 5500);
+    const legacy = all.docs.find((docSnap) => {
+      const data = docSnap.data() || {};
+      const raw = (data.clientCode || "").toString().trim().toLowerCase();
+      return raw === codeLower;
+    });
+    if (legacy) {
+      const found = { id: legacy.id, ...legacy.data() };
+      upsertLocalClient(normalizeForLocalCache(found));
+      return found;
+    }
+  } catch (_) {
+    // fallback local below
+  }
+  return getLocalClientByCode(codeLower);
+}
+
+async function getClientByCodeFast(codeLower) {
+  if (!codeLower) return null;
+  try {
+    const q = query(collection(db, "clients"), where("clientCodeLower", "==", codeLower), limit(1));
+    const snap = await withFirestoreTimeout(getDocs(q), 2500);
+    if (!snap.empty) {
+      const d = snap.docs[0];
+      const found = { id: d.id, ...d.data() };
+      upsertLocalClient(normalizeForLocalCache(found));
+      return found;
+    }
+  } catch (_) {
+    // fallback local below
+  }
+  return getLocalClientByCode(codeLower);
 }
 
 function setClientSession(profile) {
@@ -380,10 +519,16 @@ export function initClientAuthPage() {
 }
 
 export function getCurrentUserScope() {
-  return {
-    role: localStorage.getItem("photoPicker.userRole") || "",
-    branchId: localStorage.getItem("photoPicker.userBranch") || "",
-  };
+  const role = localStorage.getItem("photoPicker.userRole") || "";
+  const branchId = localStorage.getItem("photoPicker.userBranch") || "";
+  if (role) {
+    return { role, branchId };
+  }
+  const email = normalizeEmail(auth.currentUser?.email || "");
+  if (CENTRAL_ADMIN_EMAILS.has(email)) {
+    return { role: "central_admin", branchId: "" };
+  }
+  return { role: "", branchId: "" };
 }
 
 export async function createBranchAdmin(branchIdValue, emailValue, actorRole) {
@@ -424,24 +569,25 @@ export async function createClientRecord(payload, actor) {
     branchId = actorBranch || "vendor";
   }
 
-  if (!name || !phone || !driveLink || !weddingDate || !clientCode) {
+  if (!name || !driveLink || !clientCode) {
     throw new Error("invalid");
   }
 
-  const existingCode = await getClientByCode(clientCode);
+  // Untuk create baru, pakai query cepat (tanpa scan data lama) agar respons tidak lambat.
+  const existingCode = await getClientByCodeFast(clientCode);
   if (existingCode) throw new Error("code_exists");
   if (email) {
     const existingEmail = await getClientByEmail(email);
     if (existingEmail) throw new Error("email_exists");
   }
 
-  await addDoc(collection(db, "clients"), {
+  const localRecord = {
     name,
     email: email || "",
     emailLower: email || "",
-    phone,
+    phone: phone || "-",
     driveLink,
-    weddingDate,
+    weddingDate: weddingDate || "-",
     clientCode,
     clientCodeLower: clientCode,
     edited: false,
@@ -451,43 +597,87 @@ export async function createClientRecord(payload, actor) {
     status: "active",
     createdByRole: role,
     createdByUid: auth.currentUser?.uid || "",
-    createdAt: serverTimestamp(),
-  });
+    createdAt: new Date().toISOString(),
+  };
+
+  // Simpan lokal dulu agar UI tidak terasa "hang" saat Firestore lambat.
+  upsertLocalClient(normalizeForLocalCache({
+    ...localRecord,
+    id: localClientId(clientCode),
+    source: "local",
+  }));
+
+  try {
+    await withFirestoreTimeout(
+      addDoc(collection(db, "clients"), {
+        ...localRecord,
+        createdAt: serverTimestamp(),
+      }),
+      FIRESTORE_WRITE_TIMEOUT_MS
+    );
+  } catch (error) {
+    // Tetap sukses lokal; dashboard tetap jalan walau Firestore gagal sementara.
+    return { saved: "local_only", reason: error?.message || "firestore_unavailable" };
+  }
+
+  return { saved: "remote_and_local" };
 }
 
 export async function updateClientProgress(clientId, patch, actor) {
   if (!clientId) throw new Error("invalid");
   const role = actor?.role || "";
   if (!isAdminRole(role)) throw new Error("forbidden");
+  const list = readLocalClients();
+  const localIdx = list.findIndex((c) => c.id === clientId);
+  if (localIdx >= 0) {
+    list[localIdx] = {
+      ...list[localIdx],
+      ...patch,
+      updatedAt: new Date().toISOString(),
+      updatedByRole: role,
+      updatedByUid: auth.currentUser?.uid || "",
+    };
+    writeLocalClients(list);
+  }
+  if (clientId.startsWith("local_")) return;
+
   const ref = doc(db, "clients", clientId);
-  await updateDoc(ref, {
-    ...patch,
-    updatedAt: serverTimestamp(),
-    updatedByRole: role,
-    updatedByUid: auth.currentUser?.uid || "",
-  });
+  await withFirestoreTimeout(
+    updateDoc(ref, {
+      ...patch,
+      updatedAt: serverTimestamp(),
+      updatedByRole: role,
+      updatedByUid: auth.currentUser?.uid || "",
+    }),
+    FIRESTORE_WRITE_TIMEOUT_MS
+  );
 }
 
 export async function listClientsForScope(scope) {
   const role = scope?.role || "";
   const branchId = scope?.branchId || "";
   if (!isAdminRole(role)) return [];
-
-  let q;
-  if (role === "branch_admin") {
-    q = query(collection(db, "clients"), where("branchId", "==", branchId));
-  } else {
-    q = query(collection(db, "clients"));
+  const localList = listLocalClientsForScope(scope);
+  let remoteList = [];
+  try {
+    let q;
+    if (role === "branch_admin") {
+      q = query(collection(db, "clients"), where("branchId", "==", branchId));
+    } else {
+      q = query(collection(db, "clients"));
+    }
+    const snap = await withFirestoreTimeout(getDocs(q));
+    remoteList = snap.docs.map((d) => ({ id: d.id, ...d.data(), source: "remote" }));
+    remoteList.forEach((item) => upsertLocalClient(normalizeForLocalCache(item)));
+  } catch (_) {
+    remoteList = [];
   }
 
-  const snap = await getDocs(q);
-  return snap.docs
-    .map((d) => ({ id: d.id, ...d.data() }))
-    .sort((a, b) => {
-      const aa = a?.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-      const bb = b?.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-      return bb - aa;
-    });
+  return mergeByClientCode(remoteList, localList).sort((a, b) => {
+    const aa = a?.createdAt?.toDate ? a.createdAt.toDate().getTime() : Date.parse(a?.createdAt || 0) || 0;
+    const bb = b?.createdAt?.toDate ? b.createdAt.toDate().getTime() : Date.parse(b?.createdAt || 0) || 0;
+    return bb - aa;
+  });
 }
 
 export async function guardPage(requiredRole) {

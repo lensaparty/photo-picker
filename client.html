@@ -9,7 +9,7 @@
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
-<body data-mode="client" class="mode-client">
+<body data-mode="client" class="mode-client client-feed">
   <div class="app-shell">
     <aside class="side-rail">
       <div class="side-logo">LP</div>
@@ -28,12 +28,18 @@
         </div>
       </header>
       <nav class="browse-tabs" aria-label="Kategori visual">
-        <button class="browse-tab active" type="button">Unggulan</button>
-        <button class="browse-tab" type="button">Potret</button>
-        <button class="browse-tab" type="button">Landscape</button>
-        <button class="browse-tab" type="button">Family</button>
-        <button class="browse-tab" type="button">Pose</button>
-        <button class="browse-tab" type="button">Outfit</button>
+        <div class="browse-tab-list">
+          <button class="browse-tab active" type="button">Unggulan</button>
+          <button class="browse-tab" type="button">Potret</button>
+          <button class="browse-tab" type="button">Landscape</button>
+          <button class="browse-tab" type="button">Family</button>
+          <button class="browse-tab" type="button">Pose</button>
+          <button class="browse-tab" type="button">Outfit</button>
+        </div>
+        <div class="browse-tools client-only">
+          <span id="selectedMiniBadge" class="selected-mini">Dipilih: 0</span>
+          <button id="donePickBtn" type="button" class="primary">Selesai Pilih</button>
+        </div>
       </nav>
 
       <main class="layout client-simple">
@@ -144,6 +150,9 @@
       </div>
 
       <div id="grid" class="grid"></div>
+      <div class="load-more-wrap client-only">
+        <button id="loadMoreBtn" class="ghost">Lihat Lebih Banyak</button>
+      </div>
       <div id="pagination" class="pagination hidden">
         <button id="prevPageBtn" class="ghost">Prev</button>
         <span id="pageInfo" class="muted">Halaman 1</span>

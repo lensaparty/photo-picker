@@ -21,6 +21,9 @@ const prevPageBtn = document.getElementById("prevPageBtn");
 const nextPageBtn = document.getElementById("nextPageBtn");
 const pageInfo = document.getElementById("pageInfo");
 const pageSizeSelect = document.getElementById("pageSizeSelect");
+const loadMoreBtn = document.getElementById("loadMoreBtn");
+const selectedMiniBadge = document.getElementById("selectedMiniBadge");
+const donePickBtn = document.getElementById("donePickBtn");
 
 const previewWrap = document.getElementById("previewWrap");
 const activeLabel = document.getElementById("activeLabel");
@@ -263,6 +266,9 @@ function extractFolderId(link) {
 
 function updateCount() {
   countPill.textContent = `${state.selected.size} dipilih`;
+  if (selectedMiniBadge) {
+    selectedMiniBadge.textContent = `Dipilih: ${state.selected.size}`;
+  }
   updateLimitInfo();
   updateAlbumInfo();
   updateCounters();
@@ -671,12 +677,17 @@ function renderGrid() {
   emptyState.style.display = state.photos.length === 0 ? "block" : "none";
   const totalPages = Math.max(1, Math.ceil(visible.length / state.pageSize));
   if (state.page > totalPages) state.page = totalPages;
-  const startIndex = (state.page - 1) * state.pageSize;
-  const pageItems = visible.slice(startIndex, startIndex + state.pageSize);
+  const startIndex = isClientMode ? 0 : (state.page - 1) * state.pageSize;
+  const endIndex = isClientMode ? state.page * state.pageSize : startIndex + state.pageSize;
+  const pageItems = visible.slice(startIndex, endIndex);
   pagination.classList.toggle("hidden", visible.length === 0);
   pageInfo.textContent = `Halaman ${state.page} / ${totalPages}`;
   prevPageBtn.disabled = state.page <= 1;
   nextPageBtn.disabled = state.page >= totalPages;
+  if (loadMoreBtn) {
+    const hasMore = visible.length > pageItems.length;
+    loadMoreBtn.style.display = hasMore ? "inline-flex" : "none";
+  }
 
   pageItems.forEach((photo) => {
     const card = document.createElement("div");
@@ -1103,6 +1114,19 @@ nextPageBtn.addEventListener("click", () => {
   state.page += 1;
   renderGrid();
 });
+
+if (loadMoreBtn) {
+  loadMoreBtn.addEventListener("click", () => {
+    state.page += 1;
+    renderGrid();
+  });
+}
+
+if (donePickBtn) {
+  donePickBtn.addEventListener("click", () => {
+    exportBtn.click();
+  });
+}
 
 pageSizeSelect.addEventListener("change", () => {
   state.pageSize = Number(pageSizeSelect.value);
