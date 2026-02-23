@@ -42,8 +42,7 @@ const REQUIRE_CLIENT_APPROVAL = false;
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-// Gunakan database ID eksplisit agar cocok dengan setup Firestore project ini.
-const db = getFirestore(app, "photo-picker");
+const db = getFirestore(app);
 const ROLE_RESOLVE_TIMEOUT_MS = 1500;
 const LOGOUT_FLAG_KEY = "photoPicker.forceLogout";
 const LOCAL_CLIENTS_KEY = "photoPicker.localClients";
@@ -622,7 +621,7 @@ export async function createClientRecord(payload, actor) {
         );
       } catch (error) {
         if (isLocalRuntime()) return { saved: "updated_local_only", id: existingCode.id };
-        const detail = error?.code || error?.message || "unknown";
+        const detail = `${error?.code || "no_code"} ${error?.message || ""}`.trim();
         throw new Error(`remote_required:${detail}`);
       }
     }
@@ -686,7 +685,7 @@ export async function createClientRecord(payload, actor) {
       // Tetap sukses lokal saat development localhost.
       return { saved: "local_only", reason: error?.message || "firestore_unavailable" };
     }
-    const detail = error?.code || error?.message || "unknown";
+    const detail = `${error?.code || "no_code"} ${error?.message || ""}`.trim();
     throw new Error(`remote_required:${detail}`);
   }
 
