@@ -42,7 +42,8 @@ const REQUIRE_CLIENT_APPROVAL = false;
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
-const db = getFirestore(app);
+// Gunakan database ID eksplisit agar cocok dengan setup Firestore project ini.
+const db = getFirestore(app, "photo-picker");
 const ROLE_RESOLVE_TIMEOUT_MS = 1500;
 const LOGOUT_FLAG_KEY = "photoPicker.forceLogout";
 const LOCAL_CLIENTS_KEY = "photoPicker.localClients";

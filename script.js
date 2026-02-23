@@ -933,7 +933,8 @@ if (browseTabs.length) {
       tagFilterButtons.forEach((chip) => {
         chip.classList.toggle("active", (chip.dataset.tagFilter || "all") === target);
       });
-      render();
+      state.page = 1;
+      renderGrid();
     });
   });
 }
