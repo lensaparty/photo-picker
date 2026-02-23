@@ -43,11 +43,11 @@ const REQUIRE_CLIENT_APPROVAL = false;
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const ROLE_RESOLVE_TIMEOUT_MS = 1500;
+const ROLE_RESOLVE_TIMEOUT_MS = 6000;
 const LOGOUT_FLAG_KEY = "photoPicker.forceLogout";
 const LOCAL_CLIENTS_KEY = "photoPicker.localClients";
-const FIRESTORE_QUERY_TIMEOUT_MS = 4000;
-const FIRESTORE_WRITE_TIMEOUT_MS = 5000;
+const FIRESTORE_QUERY_TIMEOUT_MS = 12000;
+const FIRESTORE_WRITE_TIMEOUT_MS = 20000;
 
 function isLocalRuntime() {
   const host = window.location.hostname;

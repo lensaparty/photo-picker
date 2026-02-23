@@ -177,13 +177,13 @@ function bindClientCreate(scope) {
     };
 
     try {
-      const result = await withTimeout(createClientRecord(payload, scope), 10000);
+      const result = await withTimeout(createClientRecord(payload, scope), 30000);
       byId("clientNameInput").value = "";
       byId("clientPhoneInput").value = "";
       byId("clientDriveLinkInput").value = "";
       byId("clientWeddingDateInput").value = "";
       byId("clientCodeInput").value = "";
-      await withTimeout(renderClientList(scope), 10000);
+      await withTimeout(renderClientList(scope), 30000);
       if (result?.saved === "updated_existing" || result?.saved === "updated_local_only") {
         if (notice) notice.textContent = "Kode client sudah ada: data klien diperbarui.";
         alert("Kode client sudah ada. Data klien berhasil diperbarui.");
