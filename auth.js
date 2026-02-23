@@ -620,9 +620,10 @@ export async function createClientRecord(payload, actor) {
           }),
           FIRESTORE_WRITE_TIMEOUT_MS
         );
-      } catch (_) {
+      } catch (error) {
         if (isLocalRuntime()) return { saved: "updated_local_only", id: existingCode.id };
-        throw new Error("remote_required");
+        const detail = error?.code || error?.message || "unknown";
+        throw new Error(`remote_required:${detail}`);
       }
     }
 
@@ -685,7 +686,8 @@ export async function createClientRecord(payload, actor) {
       // Tetap sukses lokal saat development localhost.
       return { saved: "local_only", reason: error?.message || "firestore_unavailable" };
     }
-    throw new Error("remote_required");
+    const detail = error?.code || error?.message || "unknown";
+    throw new Error(`remote_required:${detail}`);
   }
 
   return { saved: "remote_and_local" };
